@@ -1,0 +1,212 @@
+JOHN G. ROBERTS, Jr., Chief Justice.
+JOHN PAUL STEVENS, Associate Justice.
+ANTONIN SCALIA, Associate Justice.
+ANTHONY M. KENNEDY, Associate Justice.
+DAVID H. SOUTER, Associate Justice.
+CLARENCE THOMAS, Associate Justice.
+RUTH BADER GINSBURG, Associate Justice.
+STEPHEN BREYER, Associate Justice.
+SAMUEL A. ALITO, Jr., Associate Justice.
+SONIA SOTOMAYOR, Associate Justice.
+CASES ADJUDGED 
+IN THE 
+SUPREME COURT OF THE UNITED STATES 
+AT  
+OCTOBER TERM, 2008  
+POLAR TANKERS, INC. v. CITY OF VALDEZ, ALASKA 
+certiorari to the supreme court of alaska 
+No. 08–310. Argued April 1, 2009—Decided June 15, 2009 
+A Valdez, Alaska, ordinance that imposes a personal property tax on cer
+tain boats and vessels contains exceptions which, in effect, largely limit 
+its applicability to large oil tankers. Petitioner Polar Tankers, Inc., 
+whose vessels transport crude oil from the Port of Valdez to reﬁneries 
+in other States, challenged the ordinance in state court, claiming (1) that 
+the tax was unconstitutional under Art. I, § 10, cl. 3, which forbids 
+a “State . . . without the Consent of Congress, [to] lay any Duty of 
+Tonnage,” and (2) that the tax’s value-allocation method violated the 
+Commerce and Due Process Clauses. The court rejected the Tonnage 
+Clause claim, but accepted the Commerce Clause and Due Process 
+Clause claim. On appeal, the State Supreme Court upheld the tax, 
+ﬁnding that because it was a value-based property tax, the tax was 
+not a duty of tonnage. The State Supreme Court also held the alloca
+tion method was fair and thus valid under the Commerce and Due Proc
+ess Clauses. 
+Held: The judgment is reversed, and the case is remanded. 
+182 P. 3d 614, reversed and remanded. 
+Justice Breyer delivered the opinion of the Court with respect 
+to Parts I, II–A, and II–B–1, concluding that Valdez’s tax violates the 
+Tonnage Clause. Consequently, Polar Tankers’ alternative Commerce 
+Clause and Due Process Clause arguments need not be considered. 
+Pp. 6–11. 
+1 
+
+2 
+POLAR TANKERS, INC. v. CITY OF VALDEZ 
+Syllabus 
+(a) This Court has consistently interpreted the language of the Ton
+nage Clause in light of its purpose, which mirrors the intent of other 
+constitutional provisions that seek to restrain the States from exercising 
+the taxing power in a way that is injurious to the interests of other 
+States. The Clause seeks to prevent States from nullifying Art. I, § 10, 
+cl. 2’s prohibition against import and export duties by taxing “the ves
+sels transporting the merchandise.” Clyde Mallory Lines v. Alabama 
+ex rel. State Docks Comm’n, 296 U. S. 261, 265. It also reﬂects an effort 
+to diminish a State’s ability to obtain tax advantages based on its favor
+able geographic position. Because the Clause forbids a State to “do 
+that indirectly which she is forbidden . . . to  do  directly,” Passenger 
+Cases, 7 How. 283, 458, the “prohibition against tonnage duties has been 
+deemed to embrace all taxes and duties regardless of their name or 
+form, and even though not measured by the tonnage of the vessel, which 
+operate to impose a charge for the privilege of entering, trading in, or 
+lying in a port,” Clyde Mallory Lines, supra, at 265–266. Pp. 6–9. 
+(b) This case lies at the heart of what the Tonnage Clause forbids. 
+The ordinance seems designed to impose “a charge for the privilege of 
+entering, trading in, or lying in a port.” The tax applies almost exclu
+sively to oil tankers, but to no other form of personal property. An oil 
+tanker can be subject to the tax based on a single entry into the port. 
+Moreover, the tax is closely correlated with cargo capacity. Contrary 
+to Valdez’s argument, the fact that the tax is designed to raise revenue 
+for general municipal services argues for, not against, application of the 
+Clause. Pp. 9–11. 
+Justice Breyer, joined by Justice Scalia, Justice Kennedy, and 
+Justice Ginsburg, rejected, in Part II–B–2, Valdez’s claim that, under 
+State Tonnage Tax Cases, 12 Wall. 204, its tax is “not within the prohibi
+tion of the Constitution,” because it is “levied . . . upon ships . . . as 
+property, based on a valuation of the same as property,” id., at 213 (em
+phasis deleted). This Court later made clear that the “prohibition” 
+against tonnage duties “comes into play” where vessels “are not taxed 
+in the same manner as the other property of the citizens,” Transporta
+tion Co. v. Wheeling, 99 U. S. 273, 284. This qualiﬁcation, important in 
+light of the Clause’s purpose, means that, in order to fund services by 
+taxing ships, a State must also impose similar taxes upon other busi
+nesses. Valdez fails to satisfy this requirement. The Court can ﬁnd 
+little, if any, other personal property that Valdez taxes. Because its 
+value-related property tax on mobile homes, trailers, and recreational 
+vehicles applies only if they are “afﬁxed” to a particular site, it taxes 
+those vehicles as a form of real, not personal, property. Valdez also 
+claims that its ship tax is simply another form of a value-based tax on 
+
+3 
+Cite as: 557 U. S. 1 (2009) 
+Syllabus 
+oil-related property provided by state law. But Valdez’s tax, a purely 
+municipal tax, differs from the tax on other oil-related property, which 
+is primarily a state-level tax, in several ways. As a result of these 
+differences, an ordinary oil-related business ﬁnding the tax on its mov
+able property too burdensome must complain to the State, which is in 
+charge of setting the manner of assessment and valuation. At the same 
+time, an oil tanker ﬁnding its vessel tax too burdensome must complain 
+to Valdez, for the State has nothing to do with that tax’s rate, valuation, 
+or assessment. There is also no effective electorate-related check on 
+Valdez’s vessel-taxing power comparable to the check available when a 
+property tax is more broadly imposed. Valdez’s property tax hits only 
+ships; it is not constrained by any need to treat ships and other business 
+property alike. Thus, Valdez’s tax lacks the safeguards implied by this 
+Court’s statements that a property tax on ships escapes the Tonnage 
+Clause’s scope only when that tax is imposed upon ships “in the same 
+manner” as it is imposed on other forms of property. Pp. 11–16. 
+The Chief Justice, joined by Justice Thomas, agreed that Valdez’s 
+tax is unconstitutional, but concluded that the city’s argument that its 
+tax may be sustained as a property tax similar to ones the city imposes 
+on other property should be rejected because an unconstitutional tax 
+on maritime commerce does not become permissible when bundled with 
+taxes on other activities or property. Pp. 17–19. 
+Justice Alito agreed that Valdez’s tax is unconstitutional, but con
+cluded that the tax is an unconstitutional duty of tonnage even if the 
+Tonnage Clause permits a true, evenhanded property tax to be applied 
+to vessels. Pp. 19–20. 
+Breyer, J., announced the judgment of the Court and delivered the 
+opinion of the Court with respect to Parts I, II–A, and II–B–1, in which 
+Scalia, Kennedy, Ginsburg, and Alito, JJ., joined, and an opinion with 
+respect to Part II–B–2, in which Scalia, Kennedy, and Ginsburg, JJ., 
+joined. Roberts, C. J., ﬁled an opinion concurring in part and concurring 
+in the judgment, in which Thomas, J., joined, post, p. 17. Alito, J., ﬁled 
+an opinion concurring in part and concurring in the judgment, post, p. 19. 
+Stevens, J., ﬁled a dissenting opinion, in which Souter, J., joined, post, 
+p. 20. 
+Charles A. Rothfeld argued the cause for petitioner. 
+With him on the briefs were Andrew L. Frey and Richard 
+A. Leavy. 
+
+4 
+POLAR TANKERS, INC. v. CITY OF VALDEZ 
+Opinion of the Court 
+Theodore B. Olson argued the cause for respondent. 
+With him on the brief were Matthew D. McGill, Amir C. 
+Tayrani, William M. Walker, and Debra J. Fitzgerald.* 
+Justice Breyer announced the judgment of the Court 
+and delivered the opinion of the Court with respect to 
+Parts I, II–A, and II–B–1, and an opinion with respect to 
+Part II–B–2, in which Justice Scalia, Justice Kennedy, 
+and Justice Ginsburg join. 
+The Constitution forbids a “State . . .  without the Consent 
+of Congress, [to] lay any Duty of Tonnage.” Art. I, § 10, cl. 3. 
+The city of Valdez, Alaska, has enacted an ordinance that 
+imposes a personal property tax upon the value of large 
+ships that travel to and from that city. We hold that the 
+ordinance violates the Clause. 
+*Briefs of amici curiae urging reversal were ﬁled for the Council on 
+State Taxation by Todd A. Lard, Douglas L. Lindholm, and Frederick J. 
+Nicely; for the National Federation of Independent Business Small Busi
+ness Legal Center by Karen R. Harned and Elizabeth Milito; and for the 
+Tropical Shipping and Construction Co., Ltd., by Jonathan F. Mitchell 
+and Paul C. Gracey, Jr. 
+Briefs of amici curiae urging afﬁrmance were ﬁled for the State of 
+Alaska et al. by Richard Svobodny, Acting Attorney General of Alaska, 
+Craig J. Tillery, Deputy Attorney General, Joanne M. Grace, Assistant 
+Attorney General, David C. Frederick, and Scott H. Angstreich, by Rich
+ard S. Gebelein, Chief Deputy Attorney General of Delaware, and by the 
+Attorneys General for their respective States as follows: Troy King of 
+Alabama, Dustin McDaniel of Arkansas, John W. Suthers of Colorado, 
+Bill McCollum of Florida, Lawrence G. Wasden of Idaho, Douglas F. 
+Gansler of Maryland, Martha Coakley of Massachusetts, Steve Bullock of 
+Montana, Anne Milgram of New Jersey, Roy Cooper of North Carolina, 
+Richard Cordray of Ohio, Mark L. Shurtleff of Utah, Robert M. McKenna 
+of Washington, Darrell V. McGraw, Jr., of West Virginia, and Bruce A. 
+Salzburg of Wyoming; and for the Multistate Tax Commission by Joe B. 
+Huddleston and Shirley K. Sicilian. 
+Briefs of amici curiae were ﬁled for the Broadband Tax Institute by 
+Jerome B. Libin, Jeffrey A. Friedman, and Marc A. Simonetti; and for 
+the World Shipping Council et al. by Marc J. Fink, John W. Butler, Law
+rence W. Kaye, and Andre´ M. Picciurro. 
+
+Cite as: 557 U. S. 1 (2009) 
+5 
+In 1999, the 
+Opinion of the Court 
+I 
+city of Valdez, Alaska (City or Valdez), 
+adopted an ordinance imposing a personal property tax upon 
+“[b]oats and vessels of at least 95 feet in length” that regu
+larly travel to the City, are kept or used within the City, or 
+which annually take on at least $1 million worth of cargo or 
+engage in other business transactions of comparable value 
+in the City. Valdez Ordinance No. 99–17 (1999) (codiﬁed as 
+Valdez Municipal Code § 3.12.020 (2008)). The ordinance 
+contains exceptions that, in effect, limit the tax’s applicabil
+ity primarily to large oil tankers. Ibid. And the City ap
+plies the tax in accordance with a value-allocation system 
+that adjusts the amount owed downwards insofar as the 
+tankers spend time in other ports. Valdez, Alaska, Resolu
+tion No. 00–15, App. to Pet. for Cert. 53a–56a. 
+Polar Tankers, Inc., a subsidiary of ConocoPhillips, owns 
+vessels that transport crude oil from a terminal in the Port 
+of Valdez (located at the southern end of the Trans Alaska 
+Pipeline System) to reﬁneries in California, Hawaii, and 
+Washington. In August 2000, Polar Tankers ﬁled a lawsuit 
+in Alaska Superior Court challenging the tax as unconstitu
+tional. Polar Tankers argued that the tax effectively im
+posed a fee on certain vessels for the privilege of entering 
+the port; hence it amounted to a constitutionally forbidden 
+“Duty of Tonnage.” It also argued that the tax calculation 
+method (as applied to vessels with a tax situs elsewhere) 
+violated the Commerce and Due Process Clauses by fail
+ing to take account of the time a ship spent at sea or being 
+serviced or repaired. Polar Tankers said that the method 
+thereby overstated the percentage of the ship’s total earning 
+capacity reasonably allocated to time spent in the Port of 
+Valdez. 
+The Alaska Superior Court rejected the Tonnage Clause 
+claim, but it accepted the Commerce Clause and Due Process 
+Clause claim. And, for that reason, it held the tax unconsti
+tutional. On appeal, the Alaska Supreme Court, rejecting 
