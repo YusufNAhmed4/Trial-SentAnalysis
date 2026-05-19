@@ -4,23 +4,26 @@ import unicodedata
 
 def append_all(doc) :
     all_text = []
-    i = 0
     for page in doc :
         text = page.get_text()
         all_text.append(text)
-        if i == 49 :
-            break
-        i += 1
 
     text = "\n".join(all_text)
     return text
 
+def clean_pdf_text(text):
+    text = unicodedata.normalize("NFKC", text)
+    text = text.replace("\xa0", " ")
+    text = ''.join(
+        c for c in text
+        if c.isprintable() or c == '\n'
+    )
+    return text
+
 def cut_opening(text) :
-    """
-    ^ = beginning of doc
-    .*? = match everything
-    (?=...) stop at ...
-    """
+    # ^ = beginning of doc
+    # .*? = match everything
+    # (?=...) stop at ...
 
     text = re.sub(
         r"^.*?(?=TERM*)",
@@ -67,7 +70,7 @@ def grab_names(text) :
     
     return names
 
-def skip_to_cases(year, text) :
+def skip_to_cases(text, year) :
     pattern = (
             rf"^.*?"
             rf"(?=CASES ADJUDGED\s+"
@@ -84,3 +87,125 @@ def skip_to_cases(year, text) :
         flags=re.DOTALL | re.IGNORECASE
     )
     return text
+
+def skip_to_next_term(text, year):
+    matches = list(re.finditer(
+        rf"Term,\s*{re.escape(str(year))}\s*\n",
+        text,
+        flags=re.IGNORECASE
+    ))
+
+    # Need at least two occurrences:
+    # first = current case
+    # second = next case
+    if len(matches) >= 2:
+        return text[matches[1].start():]
+
+    return None
+
+
+
+def get_first_title(text, year):
+    match = re.search(
+        rf"{re.escape(str(year))}\s*(.*?)(?=\s*Certiorari\s+to\s+the(?!\s+same\b))",
+        text,
+        flags=re.DOTALL | re.IGNORECASE
+    )
+
+    if not match:
+        return None
+
+    title = match.group(1).strip()
+
+    # Clean up multi-line title into one line
+    title = " ".join(
+        line.strip()
+        for line in title.splitlines()
+        if line.strip()
+    )
+    # print(repr(title))
+
+    return title
+
+# () = get the thing inside here
+# [^\n]+ = match one or more chars which aren't a newline
+#     [] = parentheses
+#     ^ = not
+#     \n = newline
+#     + = more than one
+
+# \s* = there may be whitespace
+# \n = on the next line
+# \s* = there may be whitespace
+# Certiorari\s+to\s+the = match "Certiorari to the" with >=one whitespace between each word
+# (?!) = text cannot match this
+
+
+def get_title(text):
+    match = re.search(
+        r"Syllabus\s*(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the)(?!\s+same\b))",
+        text,
+        flags=re.DOTALL | re.IGNORECASE
+    )
+
+    if not match:
+        return None
+
+    title = match.group(1).strip()
+
+    # Clean up multi-line title into one line
+    title = " ".join(
+        line.strip()
+        for line in title.splitlines()
+        if line.strip()
+    )
+
+    return title
+
+
+# .*? = match all chars
+# (.*?) = get all chars until the ?
+
+def get_excerpt(text):
+    match = re.search(
+        r"Decided.*?\n\s*(.*?)(?=\bHeld\s*:)",
+        text,
+        flags=re.DOTALL | re.IGNORECASE
+    )
+    if match :
+        to_ret = match.group(1).strip()
+        to_ret = to_ret.replace("\n", " ")
+        return to_ret
+    else :
+        return None
+    
+
+# \d{1,4}        # 1-4 ints
+# \s+            # space
+# [A-Za-z]\.     # Letter and period
+# \s+            # space
+# \d+[A-Za-z]    # number and letter
+# \s+            # space
+# \d{1-4}        # 1-4 ints
+# ,              # comma
+# \s*            # optional spaces
+# [A-Za-z]+      # keyword
+
+
+def get_case_result(text):
+    pattern = (
+        r"\s*\b\d{1,4}\s+"
+        r"[A-Za-z]\.\s+"
+        r"\d+[A-Za-z]\s+"
+        r"\d{1,4},\s*"
+        r"([A-Za-z ]+?)"
+        r"\s*[.;,]?\s*(?=\n|$)"
+    )
+
+    match = re.search(pattern, text, flags=re.IGNORECASE)
+
+    if match :
+        return match.group(1).strip()
+    else :
+        print("couldn't find result")
+        return None
