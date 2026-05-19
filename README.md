@@ -6,3 +6,7 @@ Structure:
 
 "Scraper" = Takes text-scanned PDFs of SC opinions and converts them into vectorized data.
 Learning Model = Takes vectorized data and outputs learning model
+
+Data is formatted like so:
+
+[Year decided, [Justice names], Case name, case excerpt, case decision]
