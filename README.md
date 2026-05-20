@@ -9,4 +9,4 @@ Learning Model = Takes vectorized data and outputs learning model
 
 Data is formatted like so:
 
-[Year decided, [Justice names], Case name, case excerpt, case decision]
+{year decided, [yustice names], case name, case excerpt, case decision}
