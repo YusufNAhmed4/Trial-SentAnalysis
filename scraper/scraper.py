@@ -4,7 +4,7 @@ The main scraper, taking a volume pdf and turning it into a json for data.
 
 import json
 from pathlib import Path
-import fitz
+import pymupdf as fitz
 import indiv
 from tqdm import tqdm
 
