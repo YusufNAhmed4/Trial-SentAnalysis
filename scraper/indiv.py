@@ -1,8 +1,14 @@
-import fitz
+'''
+Functions which compile, clean, and collate all case data
+'''
+
 import re
 import unicodedata
 
 def append_all(doc) :
+    """
+    Appends all pages from the open document into one string
+    """
     all_text = []
     for page in doc :
         text = page.get_text()
@@ -12,6 +18,9 @@ def append_all(doc) :
     return text
 
 def clean_pdf_text(text):
+    """
+    Cleans out most unprintable characters
+    """
     ligatures = {
         "\ufb00": "ff",
         "\ufb01": "fi",
@@ -42,9 +51,9 @@ def clean_pdf_text(text):
     return text
 
 def cut_opening(text) :
-    # ^ = beginning of doc
-    # .*? = match everything
-    # (?=...) stop at ...
+    """
+    Removes opening of volume, grabbing publication year and skipping to justice names.
+    """
 
     match = re.search(
         r"TERM,\s+(\d{4})",
@@ -57,7 +66,9 @@ def cut_opening(text) :
 
     year = match.group(1)
 
-    # Remove everything before "during the time..."
+    # ^ = beginning of doc
+    # .*? = match everything
+    # (?=...) stop at ...
     text = re.sub(
         r"^.*?(?=during the time of these reports)",
         "",
@@ -68,8 +79,11 @@ def cut_opening(text) :
     return year, text
 
 def grab_names(text) :
+    """
+    Returns justice names
+    """
     match = re.search(
-        r"during the time of these reports\*\s*(.*?)(?=retired)",
+        r"during the time of these reports\**\s*(.*?)(?=retired)",
         text,
         flags=re.DOTALL | re.IGNORECASE
     )
@@ -92,11 +106,12 @@ def grab_names(text) :
             for line in names_block.splitlines()
             if line.strip()
         ]
-
-    
     return names
 
 def skip_to_cases(text, year) :
+    """
+    Jumps to volume body of cases
+    """
     pattern = (
             rf"^.*?"
             rf"(?=CASES ADJUDGED\s+"
@@ -115,6 +130,10 @@ def skip_to_cases(text, year) :
     return text
 
 def skip_to_next_term(text, year):
+    """
+    Skips to next instance of "Term, year" available
+    Next case in modern volumes, next page in old volumes
+    """
     matches = list(re.finditer(
         rf"Term,\s*{re.escape(str(year))}\s*\n",
         text,
@@ -129,29 +148,51 @@ def skip_to_next_term(text, year):
 
     return None
 
+def skip_to_title(text, raw_title) :
+    """
+    Skips to nearest case defined by title
+    """
+    if text is None or raw_title is None:
+        return None
+
+    match = re.search(
+        re.escape(raw_title),
+        text,
+        flags=re.IGNORECASE
+    )
+
+    if match:
+        return text[match.start():]
+
+    return None
 
 
 def get_first_title(text, year):
+    """
+    Gets title of first case in volume (special case)
+    """
     match = re.search(
-        rf"{re.escape(str(year))}\s*(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)(?!\s+same\b))",
+        rf"{re.escape(str(year))}\s*"
+        rf"(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)"
+        rf"(?!\s+same\b))",
         text,
         flags=re.DOTALL | re.IGNORECASE
     )
 
     if not match:
-        return None
+        return None, None
 
-    title = match.group(1).strip()
+    raw_title = match.group(1).strip()
 
     # Clean up multi-line title into one line
-    title = " ".join(
+    to_ret = " ".join(
         line.strip()
-        for line in title.splitlines()
+        for line in raw_title.splitlines()
         if line.strip()
     )
     # print(repr(title))
 
-    return title
+    return raw_title, to_ret
 
 # () = get the thing inside here
 # [^\n]+ = match one or more chars which aren't a newline
@@ -168,30 +209,38 @@ def get_first_title(text, year):
 
 
 def get_title(text):
+    """
+    Gets the next available title (normal case)
+    """
     match = re.search(
-        r"(?:Syllabus|Per\s+Curiam)\s*(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)(?!\s+same\b))",
+        r"(?:Syllabus|Per\s+Curiam)\s*"
+        r"(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)"
+        r"(?!\s+same\b))",
         text,
         flags=re.DOTALL | re.IGNORECASE
     )
 
     # print(match)
     if not match:
-        return None
+        return None, None
 
-    title = match.group(1).strip()
+    raw_title = match.group(1).strip()
 
     # Clean up multi-line title into one line
-    if len(title) >= 1000:
+    if len(raw_title) >= 1000:
         # print("Title hit 1000 characters; likely bad match. Skipping case.")
-        return "None"
+        return "raw_too_long", "Too Long"
 
-    return " ".join(title.split())
+    return raw_title, " ".join(raw_title.split())
 
 
 # .*? = match all chars
 # (.*?) = get all chars until the ?
 
 def get_excerpt(text):
+    """
+    Gets excerpt of case
+    """
     match = re.search(
         r"Decided.*?\n\s*(.*?)(?=\bHeld\s*:)",
         text,
@@ -201,9 +250,8 @@ def get_excerpt(text):
         to_ret = match.group(1).strip()
         to_ret = to_ret.replace("\n", " ")
         return to_ret
-    else :
-        return None
-    
+    return None
+
 
 # \d{1,4}        # 1-4 ints
 # \s+            # space
@@ -216,8 +264,10 @@ def get_excerpt(text):
 # \s*            # optional spaces
 # [A-Za-z]+      # keyword
 
-
 def get_case_result(text):
+    """
+    Finds result of case
+    """
     pattern = (
         r"\n\s*"
         r"(?:Certiorari\s+granted;\s*)?"
@@ -242,7 +292,10 @@ def get_case_result(text):
         # print("GROUP ONE: ", match.group(1))
         # print("GROUP TWO: ", match.group(2))
         to_ret = to_ret = match.group(1) or match.group(2)
-        return to_ret.strip().replace("\n", "")
-    else :
-        print("couldn't find result")
-        return None
+        to_ret = to_ret.strip().replace("\n", "")
+        if to_ret == "affrmed" :
+            return "affirmed"
+        return to_ret
+
+    print("couldn't find result")
+    return None
