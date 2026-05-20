@@ -12,12 +12,33 @@ def append_all(doc) :
     return text
 
 def clean_pdf_text(text):
+    ligatures = {
+        "\ufb00": "ff",
+        "\ufb01": "fi",
+        "\ufb02": "fl",
+        "\ufb03": "ffi",
+        "\ufb04": "ffl",
+        "\ufb05": "st",
+        "\ufb06": "st",
+    }
+
+    for old, new in ligatures.items():
+        text = text.replace(old, new)
+
     text = unicodedata.normalize("NFKC", text)
+
+    text = re.sub(r"[-‐-–—\u00AD]\s+\n?\s*", "", text)
+
     text = text.replace("\xa0", " ")
     text = ''.join(
         c for c in text
         if c.isprintable() or c == '\n'
     )
+    text = text.replace("\u2019", "'")
+    text = text.replace("\u00a7", "S. ")
+    text = text.replace("\u201c", '"')
+    text = text.replace("\u201d", '"')
+    text = text.replace("\u00b7", " ")
     return text
 
 def cut_opening(text) :
@@ -25,20 +46,25 @@ def cut_opening(text) :
     # .*? = match everything
     # (?=...) stop at ...
 
-    text = re.sub(
-        r"^.*?(?=TERM*)",
-        "",
+    match = re.search(
+        r"TERM,\s+(\d{4})",
         text,
-        flags=re.DOTALL
+        flags=re.IGNORECASE
     )
-    year = text[5:9]
 
+    if not match:
+        return None, text
+
+    year = match.group(1)
+
+    # Remove everything before "during the time..."
     text = re.sub(
-        r"^.*?(?=during the time of these reports*)",
+        r"^.*?(?=during the time of these reports)",
         "",
         text,
-        flags=re.DOTALL
+        flags=re.DOTALL | re.IGNORECASE
     )
+
     return year, text
 
 def grab_names(text) :
@@ -107,7 +133,7 @@ def skip_to_next_term(text, year):
 
 def get_first_title(text, year):
     match = re.search(
-        rf"{re.escape(str(year))}\s*(.*?)(?=\s*Certiorari\s+to\s+the(?!\s+same\b))",
+        rf"{re.escape(str(year))}\s*(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)(?!\s+same\b))",
         text,
         flags=re.DOTALL | re.IGNORECASE
     )
@@ -143,24 +169,23 @@ def get_first_title(text, year):
 
 def get_title(text):
     match = re.search(
-        r"Syllabus\s*(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the)(?!\s+same\b))",
+        r"(?:Syllabus|Per\s+Curiam)\s*(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)(?!\s+same\b))",
         text,
         flags=re.DOTALL | re.IGNORECASE
     )
 
+    # print(match)
     if not match:
         return None
 
     title = match.group(1).strip()
 
     # Clean up multi-line title into one line
-    title = " ".join(
-        line.strip()
-        for line in title.splitlines()
-        if line.strip()
-    )
+    if len(title) >= 1000:
+        # print("Title hit 1000 characters; likely bad match. Skipping case.")
+        return "None"
 
-    return title
+    return " ".join(title.split())
 
 
 # .*? = match all chars
@@ -194,18 +219,30 @@ def get_excerpt(text):
 
 def get_case_result(text):
     pattern = (
-        r"\s*\b\d{1,4}\s+"
-        r"[A-Za-z]\.\s+"
-        r"\d+[A-Za-z]\s+"
-        r"\d{1,4},\s*"
-        r"([A-Za-z ]+?)"
-        r"\s*[.;,]?\s*(?=\n|$)"
+        r"\n\s*"
+        r"(?:Certiorari\s+granted;\s*)?"
+        r"(?:"
+            r"\b\d{1,4}\s+"
+            r"[A-Za-z]\.\s+"
+            r"\d+[A-Za-z]\s+"
+            r"\d{1,4},\s*"
+            r"([A-Za-z ]+?)"
+        r"|"
+            r"\b\d{1,4}\s+Fed\.\s+Appx\.\s+"
+            r"\d{1,4},\s*"
+            r"(?:\d{1,4},\s*)*"
+            r"([A-Za-z ,\n]+?)"
+        r")"
+        r"\s*\."
     )
 
     match = re.search(pattern, text, flags=re.IGNORECASE)
-
     if match :
-        return match.group(1).strip()
+        # print("TO CONSIDER: ", match)
+        # print("GROUP ONE: ", match.group(1))
+        # print("GROUP TWO: ", match.group(2))
+        to_ret = to_ret = match.group(1) or match.group(2)
+        return to_ret.strip().replace("\n", "")
     else :
         print("couldn't find result")
         return None
