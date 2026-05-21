@@ -20,10 +20,11 @@ def scrape_all_pdfs() :
     for file in all_files:
         cases = scrape_one_pdf(file)
         all_cases.extend(cases)
+        # break
 
     with open("output.json", "w", encoding="utf-8") as f:
         json.dump(all_cases, f, indent=4)
-    print(len(all_cases))
+    # print(len(all_cases))
 
 
 def load_pdf_text(path):

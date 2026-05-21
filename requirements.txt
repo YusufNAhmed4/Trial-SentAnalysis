@@ -1,7 +1,3 @@
-re
-unicodedata
-json
-pathlib
 fitz
-indiv
-tqdm
+pymupdf
+tensorflow
