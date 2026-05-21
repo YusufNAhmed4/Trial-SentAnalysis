@@ -48,6 +48,7 @@ def clean_pdf_text(text):
     text = text.replace("\u201c", '"')
     text = text.replace("\u201d", '"')
     text = text.replace("\u00b7", " ")
+    text = text.replace("affrmed", "affirmed")
     return text
 
 def cut_opening(text) :
@@ -106,7 +107,12 @@ def grab_names(text) :
             for line in names_block.splitlines()
             if line.strip()
         ]
-    return names
+    to_ret = []
+    for name in names :
+        name_title = name.split(",")
+        name_split = name_title[0].split(" ")
+        to_ret.append(name_split[-1].lower())
+    return to_ret
 
 def skip_to_cases(text, year) :
     """
@@ -190,9 +196,21 @@ def get_first_title(text, year):
         for line in raw_title.splitlines()
         if line.strip()
     )
-    # print(repr(title))
+    title = unicodedata.normalize("NFKD", to_ret)
 
-    return raw_title, to_ret
+    # Convert to lowercase
+    title = title.lower()
+
+    # Remove apostrophes and periods
+    title = re.sub(r"[.'’]", "", title)
+
+    # Replace punctuation with spaces
+    title = re.sub(r"[^a-z0-9\s]", " ", title)
+
+    # Collapse repeated spaces
+    title = re.sub(r"\s+", " ", title)
+
+    return raw_title, title.strip()
 
 # () = get the thing inside here
 # [^\n]+ = match one or more chars which aren't a newline
@@ -231,7 +249,21 @@ def get_title(text):
         # print("Title hit 1000 characters; likely bad match. Skipping case.")
         return "raw_too_long", "Too Long"
 
-    return raw_title, " ".join(raw_title.split())
+    title = unicodedata.normalize("NFKD", " ".join(raw_title.split()))
+
+    # Convert to lowercase
+    title = title.lower()
+
+    # Remove apostrophes and periods
+    title = re.sub(r"[.'’]", "", title)
+
+    # Replace punctuation with spaces
+    title = re.sub(r"[^a-z0-9\s]", " ", title)
+
+    # Collapse repeated spaces
+    title = re.sub(r"\s+", " ", title)
+
+    return raw_title, title.strip()
 
 
 # .*? = match all chars
@@ -246,11 +278,30 @@ def get_excerpt(text):
         text,
         flags=re.DOTALL | re.IGNORECASE
     )
-    if match :
-        to_ret = match.group(1).strip()
-        to_ret = to_ret.replace("\n", " ")
-        return to_ret
-    return None
+
+    if not match:
+        return None
+
+    excerpt = match.group(1)
+
+    # Normalize weird PDF unicode
+    excerpt = unicodedata.normalize("NFKD", excerpt)
+
+    # Remove footnote markers like:
+    # "Marshall.1" or "decision[2]"
+    excerpt = re.sub(r"\[\d+\]", " ", excerpt)
+    excerpt = re.sub(r"(?<!\()\b\d+\b(?!\))", " ", excerpt)
+
+    # Replace line breaks/tabs with spaces
+    excerpt = re.sub(r"[\n\t]+", " ", excerpt)
+
+    # Remove repeated punctuation artifacts
+    excerpt = re.sub(r"[•■□]+", " ", excerpt)
+
+    # Collapse multiple spaces
+    excerpt = re.sub(r"\s+", " ", excerpt)
+
+    return excerpt.strip()
 
 
 # \d{1,4}        # 1-4 ints
@@ -293,8 +344,6 @@ def get_case_result(text):
         # print("GROUP TWO: ", match.group(2))
         to_ret = to_ret = match.group(1) or match.group(2)
         to_ret = to_ret.strip().replace("\n", "")
-        if to_ret == "affrmed" :
-            return "affirmed"
         return to_ret
 
     print("couldn't find result")
