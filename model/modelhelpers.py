@@ -2,10 +2,12 @@
 Helper functions for the model
 '''
 
+# pylint: disable=no-member
 import random
+import tensorflow as tf
+import numpy as np
 
-
-def train_test(data, train_ratio=1, seed=1832) :
+def train_test(data, train_ratio=0.8, seed=1832) :
     """
     Splits long json into train-test (80-20)
     """
@@ -14,6 +16,7 @@ def train_test(data, train_ratio=1, seed=1832) :
     random.seed(seed)
     random.shuffle(data_copy)
 
+    print("Amt of data: ", len(data_copy))
     split_idx = int(len(data_copy) * train_ratio)
 
     train_data = data_copy[:split_idx]
@@ -65,11 +68,11 @@ def make_vocabs(data) :
     results_vocab = set(results)
     return justice_vocab, results_vocab
 
-def scale_years(data) :
+def scale_years(data, train) :
     """
     Takes years and normalizes them between 0-1
     """
-    years = [int(x["year"]) for x, _ in data]
+    years = [int(x["year"]) for x, _ in train]
     min_year = min(years)
     max_year = max(years)
     for entry, _ in data :
@@ -105,3 +108,169 @@ def prep_justice_result(pairs, justice_vocab, results_vocab):
         encoded.append((encoded_x, encoded_y))
 
     return encoded
+
+def make_text_vectorizer(train, field, max_tokens=20000, output_length=200):
+    """
+    Fits a TextVectorization layer on one text field.
+    train is a list of (input, label) tuples.
+    """
+
+    texts = [x.get(field, "") for x, _ in train]
+
+    vectorizer = tf.keras.layers.TextVectorization(
+        max_tokens=max_tokens,
+        output_mode="int",
+        output_sequence_length=output_length
+    )
+
+    vectorizer.adapt(texts)
+
+    return vectorizer
+
+def tokenize_field(data, vectorizer, field):
+    """
+    Takes in a text field and tokenizes it using the inputted vectorizer
+    """
+    for x, _ in data:
+        x[field + "_tokens"] = (
+            vectorizer([x[field]])
+            .numpy()[0]
+        )
+
+def make_x_y(data):
+    """
+    Turns (input, label) list into X and y, both are np arrays
+    """
+    x = {
+        "justices": np.array([x["justices"] for x, _ in data]),
+        "year": np.array([x["year"] for x, _ in data], dtype=np.float32),
+        "name_tokens": np.array([x["name_tokens"] for x, _ in data]),
+        "excerpt_tokens": np.array([x["excerpt_tokens"] for x, _ in data]),
+    }
+
+    y = np.array([label for _, label in data])
+
+    return x, y
+
+
+def create_inputs(x_train):
+    """
+    Creates model input layers
+    """
+    return {
+        "justices":
+            tf.keras.Input(
+                shape=(x_train["justices"].shape[1],),
+                name="justices"
+            ),
+
+        "year":
+            tf.keras.Input(
+                shape=(),
+                name="year"
+            ),
+
+        "name_tokens":
+            tf.keras.Input(
+                shape=(x_train["name_tokens"].shape[1],),
+                name="name_tokens"
+            ),
+
+        "excerpt_tokens":
+            tf.keras.Input(
+                shape=(x_train["excerpt_tokens"].shape[1],),
+                name="excerpt_tokens"
+            )
+    }
+
+
+def make_text_features(input_layer, embed_size):
+    """
+    Converts token sequences into feature vectors
+    """
+    embed = tf.keras.layers.Embedding(
+        input_dim=20000,
+        output_dim=embed_size,
+        mask_zero=True
+    )(input_layer)
+
+    return tf.keras.layers.GlobalAveragePooling1D()(embed)
+
+
+def make_other_features(inputs):
+    """
+    Creates non-text features
+    """
+    justice_features = tf.keras.layers.Dense(
+        32,
+        activation="relu"
+    )(inputs["justices"])
+
+    year_features = tf.keras.layers.Reshape((1,))(
+        inputs["year"]
+    )
+
+    return justice_features, year_features
+
+
+def make_classifier(features, num_results):
+    """
+    Creates output portion of network
+    """
+    x = tf.keras.layers.Concatenate()(features)
+
+    x = tf.keras.layers.Dense(
+        64,
+        activation="relu"
+    )(x)
+
+    x = tf.keras.layers.Dropout(0.3)(x)
+
+    return tf.keras.layers.Dense(
+        num_results,
+        activation="softmax"
+    )(x)
+
+
+def build_model(x_train, num_results):
+    """
+    Builds and returns model
+    """
+    inputs = create_inputs(x_train)
+
+    name_features = make_text_features(
+        inputs["name_tokens"],
+        32
+    )
+
+    excerpt_features = make_text_features(
+        inputs["excerpt_tokens"],
+        64
+    )
+
+    justice_features, year_features = (
+        make_other_features(inputs)
+    )
+
+    output = make_classifier(
+        [
+            justice_features,
+            year_features,
+            name_features,
+            excerpt_features
+        ],
+        num_results
+    )
+
+    model = tf.keras.Model(
+        inputs=inputs,
+        outputs=output
+    )
+
+    model.compile(
+        optimizer="adam",
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"]
+    )
+
+    return model
