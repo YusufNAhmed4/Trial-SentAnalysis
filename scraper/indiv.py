@@ -344,7 +344,8 @@ def get_case_result(text):
         # print("GROUP TWO: ", match.group(2))
         to_ret = to_ret = match.group(1) or match.group(2)
         to_ret = to_ret.strip().replace("\n", "")
-        return to_ret
+        words = to_ret.split()
+        return words[0]
 
     print("couldn't find result")
     return None

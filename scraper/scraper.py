@@ -1,5 +1,5 @@
 '''
-The main scraper, taking a volume pdf and turning it into a json for data.
+The main scraper, taking volume pdfs and turning them into a json for data.
 '''
 
 import json
@@ -87,6 +87,7 @@ def extract_case(text, raw, title, year, names):
     result = indiv.get_case_result(text)
 
     if result is None:
+        # print("RESULT WAS NONE, TITLE: ", title)
         return None, None
 
     case = {
@@ -124,7 +125,22 @@ def scrape_one_pdf(path):
             case, text = extract_case(text, raw, title, year, names)
 
             if case is None:
-                break
+                if year is None :
+                    break
+                if text is None :
+                    break
+                text = indiv.skip_to_next_term(text, year)
+
+                if text is None:
+                    print("Could not recover after bad case:", title)
+                    break
+
+                pbar.set_postfix({
+                    "skipped": title[:30],
+                    "total": len(cases)
+                })
+
+                continue
 
             cases.append(case)
 
