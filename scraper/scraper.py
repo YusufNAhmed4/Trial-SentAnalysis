@@ -8,30 +8,32 @@ import pymupdf as fitz
 import indiv
 from tqdm import tqdm
 
-def scrape_all_pdfs() :
+def scrape_all_pdfs():
     """
-    Scrapes all PDFs for data and outputs a json into a txt file
+    Scrapes all PDFs for data and outputs JSONL.
     """
+    all_files = [
+        str(f.relative_to("Trial Data PDFs/new PDFs"))
+        for f in Path("Trial Data PDFs/new PDFs").rglob("*")
+        if f.is_file()
+    ]
+    print(all_files)
+    # all_files = ["470bv.pdf"]
 
-    all_files = [f.name for f in Path('Trial Data PDFs').iterdir() if f.is_file()]
+    with open("output.jsonl", "a", encoding="utf-8") as out:
+        with tqdm(desc="Scraping cases", unit="case") as pbar:
+            for file in all_files:
+                cases = scrape_one_pdf(file, pbar)
 
-    all_cases = []
-
-    for file in all_files:
-        cases = scrape_one_pdf(file)
-        all_cases.extend(cases)
-        # break
-
-    with open("output.json", "w", encoding="utf-8") as f:
-        json.dump(all_cases, f, indent=4)
-    # print(len(all_cases))
+                for case in cases:
+                    out.write(json.dumps(case, ensure_ascii=False) + "\n")
 
 
 def load_pdf_text(path):
     """
     loads in all pdf text into one string
     """
-    pdf_path = "Trial Data PDFs/" + path
+    pdf_path = "Trial Data PDFs/new PDFs/" + path
 
     with fitz.open(pdf_path) as doc:
         text = indiv.append_all(doc)
@@ -100,7 +102,7 @@ def extract_case(text, raw, title, year, names):
 
     return case, text
 
-def scrape_one_pdf(path):
+def scrape_one_pdf(path, pbar=None):
     """
     Scrapes one PDF and converts needed info into JSON.
     Read README for data format.
@@ -112,48 +114,49 @@ def scrape_one_pdf(path):
     titles = set()
     first = True
 
-    with tqdm(desc="Processing cases", unit="case") as pbar:
-        while True:
-            text, raw, title = get_next_valid_title(text, year, titles, first)
-            first = False
+    while True:
+        text, raw, title = get_next_valid_title(text, year, titles, first)
+        first = False
 
-            if text is None or title is None:
+        if text is None or title is None:
+            break
+
+        titles.add(title)
+
+        case, text = extract_case(text, raw, title, year, names)
+
+        if case is None:
+            if year is None or text is None:
                 break
-
-            titles.add(title)
-
-            case, text = extract_case(text, raw, title, year, names)
-
-            if case is None:
-                if year is None :
-                    break
-                if text is None :
-                    break
-                text = indiv.skip_to_next_term(text, year)
-
-                if text is None:
-                    print("Could not recover after bad case:", title)
-                    break
-
-                pbar.set_postfix({
-                    "skipped": title[:30],
-                    "total": len(cases)
-                })
-
-                continue
-
-            cases.append(case)
 
             text = indiv.skip_to_next_term(text, year)
+
             if text is None:
-                print("text broke regular")
+                print("Could not recover after bad case:", title)
                 break
 
+            if pbar is not None:
+                pbar.set_postfix({
+                    "file": str(path)[:25],
+                    "skipped": title[:30],
+                    "cases": len(cases)
+                })
+
+            continue
+
+        cases.append(case)
+
+        if pbar is not None:
             pbar.update(1)
             pbar.set_postfix({
+                "file": str(path)[:25],
                 "latest": title[:30],
-                "total": len(cases)
+                "cases": len(cases)
             })
+
+        text = indiv.skip_to_next_term(text, year)
+        if text is None:
+            break
 
     return cases
 

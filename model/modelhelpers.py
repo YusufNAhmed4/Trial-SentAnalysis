@@ -6,6 +6,7 @@ Helper functions for the model
 import random
 import tensorflow as tf
 import numpy as np
+import sklearn
 
 def train_test(data, train_ratio=0.8, seed=1832) :
     """
@@ -17,6 +18,11 @@ def train_test(data, train_ratio=0.8, seed=1832) :
     random.shuffle(data_copy)
 
     print("Amt of data: ", len(data_copy))
+    results = [x["result"] for x in data_copy]
+
+    print("Reversed count: ", results.count("reversed"))
+    print("affirmed count: ", results.count("affirmed"))
+    print("vacated count: ", results.count("vacated"))
     split_idx = int(len(data_copy) * train_ratio)
 
     train_data = data_copy[:split_idx]
@@ -154,74 +160,63 @@ def make_x_y(data):
 
 
 def create_inputs(x_train):
-    """
-    Creates model input layers
-    """
     return {
-        "justices":
-            tf.keras.Input(
-                shape=(x_train["justices"].shape[1],),
-                name="justices"
-            ),
-
-        "year":
-            tf.keras.Input(
-                shape=(),
-                name="year"
-            ),
-
-        "name_tokens":
-            tf.keras.Input(
-                shape=(x_train["name_tokens"].shape[1],),
-                name="name_tokens"
-            ),
-
-        "excerpt_tokens":
-            tf.keras.Input(
-                shape=(x_train["excerpt_tokens"].shape[1],),
-                name="excerpt_tokens"
-            )
+        "justices": tf.keras.Input(
+            shape=(x_train["justices"].shape[1],),
+            name="justices"
+        ),
+        "year": tf.keras.Input(shape=(), name="year"),
+        "name_tokens": tf.keras.Input(
+            shape=(x_train["name_tokens"].shape[1],),
+            name="name_tokens"
+        ),
+        "excerpt_tokens": tf.keras.Input(
+            shape=(x_train["excerpt_tokens"].shape[1],),
+            name="excerpt_tokens"
+        )
     }
 
 
 def make_text_features(input_layer, embed_size):
-    """
-    Converts token sequences into feature vectors
-    """
     embed = tf.keras.layers.Embedding(
         input_dim=20000,
         output_dim=embed_size,
-        mask_zero=True
+        mask_zero=False
     )(input_layer)
 
-    return tf.keras.layers.GlobalAveragePooling1D()(embed)
+    pooled = tf.keras.layers.GlobalAveragePooling1D()(embed)
+    return tf.keras.layers.Dropout(0.25)(pooled)
 
 
 def make_other_features(inputs):
-    """
-    Creates non-text features
-    """
     justice_features = tf.keras.layers.Dense(
         32,
-        activation="relu"
+        activation="relu",
+        kernel_regularizer=tf.keras.regularizers.l2(1e-4)
     )(inputs["justices"])
 
-    year_features = tf.keras.layers.Reshape((1,))(
-        inputs["year"]
-    )
+    justice_features = tf.keras.layers.Dropout(0.25)(justice_features)
+
+    year_features = tf.keras.layers.Reshape((1,))(inputs["year"])
 
     return justice_features, year_features
 
 
 def make_classifier(features, num_results):
-    """
-    Creates output portion of network
-    """
     x = tf.keras.layers.Concatenate()(features)
 
     x = tf.keras.layers.Dense(
         64,
-        activation="relu"
+        activation="relu",
+        kernel_regularizer=tf.keras.regularizers.l2(1e-4)
+    )(x)
+
+    x = tf.keras.layers.Dropout(0.4)(x)
+
+    x = tf.keras.layers.Dense(
+        32,
+        activation="relu",
+        kernel_regularizer=tf.keras.regularizers.l2(1e-4)
     )(x)
 
     x = tf.keras.layers.Dropout(0.3)(x)
@@ -233,24 +228,11 @@ def make_classifier(features, num_results):
 
 
 def build_model(x_train, num_results):
-    """
-    Builds and returns model
-    """
     inputs = create_inputs(x_train)
 
-    name_features = make_text_features(
-        inputs["name_tokens"],
-        32
-    )
-
-    excerpt_features = make_text_features(
-        inputs["excerpt_tokens"],
-        64
-    )
-
-    justice_features, year_features = (
-        make_other_features(inputs)
-    )
+    name_features = make_text_features(inputs["name_tokens"], 32)
+    excerpt_features = make_text_features(inputs["excerpt_tokens"], 64)
+    justice_features, year_features = make_other_features(inputs)
 
     output = make_classifier(
         [
@@ -262,15 +244,65 @@ def build_model(x_train, num_results):
         num_results
     )
 
-    model = tf.keras.Model(
-        inputs=inputs,
-        outputs=output
-    )
+    model = tf.keras.Model(inputs=inputs, outputs=output)
 
     model.compile(
-        optimizer="adam",
-        loss="sparse_categorical_crossentropy",
-        metrics=["accuracy"]
-    )
+    optimizer=tf.keras.optimizers.Adam(
+        learning_rate=1e-4,
+        clipnorm=1.0
+    ),
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
 
     return model
+
+
+def make_early_stopping():
+    return tf.keras.callbacks.EarlyStopping(
+        monitor="val_loss",
+        patience=3,
+        restore_best_weights=True
+    )
+
+def oversample_classes(x_train, y_train):
+    """
+    Should make label counts equal
+    """
+    classes, counts = np.unique(y_train, return_counts=True)
+    max_count = counts.max()
+
+    x_bal = {key: [] for key in x_train}
+    y_bal = []
+
+    for c in classes:
+        idx = np.where(y_train == c)[0]
+
+        sampled_idx = sklearn.utils.resample(
+            idx,
+            replace=True,
+            n_samples=max_count,
+            random_state=42
+        )
+
+        # Sample each feature array
+        for key in x_train:
+            x_bal[key].append(x_train[key][sampled_idx])
+
+        y_bal.append(y_train[sampled_idx])
+
+    # Merge class chunks together
+    for key in x_bal:
+        x_bal[key] = np.concatenate(x_bal[key])
+
+    y_bal = np.concatenate(y_bal)
+
+    # Shuffle everything together
+    perm = np.random.permutation(len(y_bal))
+
+    for key in x_bal:
+        x_bal[key] = x_bal[key][perm]
+
+    y_bal = y_bal[perm]
+
+    return x_bal, y_bal
