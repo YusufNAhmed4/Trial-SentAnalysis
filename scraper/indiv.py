@@ -84,7 +84,10 @@ def grab_names(text) :
     Returns justice names
     """
     match = re.search(
-        r"during the time of these reports\**\s*(.*?)(?=retired)",
+        r"d\s*u\s*r\s*i\s*n\s*g t\s*h\s*e "
+        r"t\s*i\s*m\s*e o\s*f t\s*h\s*e\s*s\s*e "
+        r"r\s*e\s*p\s*o\s*r\s*t\s*s"
+        r"\**\s*(.*?)(?=r\s*e\s*t\s*i\s*r\s*e\s*d|officers)",
         text,
         flags=re.DOTALL | re.IGNORECASE
     )
@@ -108,10 +111,20 @@ def grab_names(text) :
             if line.strip()
         ]
     to_ret = []
+    # print(names)
     for name in names :
+        if len(name) < 15 :
+            continue
+        # print("name: ", name)
         name_title = name.split(",")
-        name_split = name_title[0].split(" ")
+        # print("nametitle: ", name_title)
+        name_split = name_title[0].split()
+        # print("namesplit: ", name_split)
         to_ret.append(name_split[-1].lower())
+    if len(to_ret) != 9 :
+        return to_ret[:9]
+
+    # print(to_ret)
     return to_ret
 
 def skip_to_cases(text, year) :
@@ -231,7 +244,7 @@ def get_title(text):
     Gets the next available title (normal case)
     """
     match = re.search(
-        r"(?:Syllabus|Per\s+Curiam)\s*"
+        r"(?:Syllabus|Per\s+Curiam)\s*(?:\d{1,4}\s+U\.\s*S\.\s*)?(?:\d{1,4}\s+U\s*S\s*)?"
         r"(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)"
         r"(?!\s+same\b))",
         text,
@@ -245,7 +258,7 @@ def get_title(text):
     raw_title = match.group(1).strip()
 
     # Clean up multi-line title into one line
-    if len(raw_title) >= 1000:
+    if len(raw_title) >= 200:
         # print("Title hit 1000 characters; likely bad match. Skipping case.")
         return "raw_too_long", "Too Long"
 
@@ -263,6 +276,8 @@ def get_title(text):
     # Collapse repeated spaces
     title = re.sub(r"\s+", " ", title)
 
+    title = re.sub(r"\d{1,4} u s ", "", title)
+
     return raw_title, title.strip()
 
 
@@ -273,16 +288,28 @@ def get_excerpt(text):
     """
     Gets excerpt of case
     """
-    match = re.search(
-        r"Decided.*?\n\s*(.*?)(?=\bHeld\s*:)",
+    decided_match = re.search(
+        r"\bDecided\b.*?\n",
         text,
-        flags=re.DOTALL | re.IGNORECASE
+        flags=re.IGNORECASE
     )
 
-    if not match:
+    if not decided_match:
         return None
 
-    excerpt = match.group(1)
+    start = decided_match.end()
+
+    held_match = re.search(
+        r"\n\s*Held\s*:",
+        text[start:],
+        flags=re.IGNORECASE
+    )
+
+    if not held_match:
+        return None
+
+    end = start + held_match.start()
+    excerpt = text[start:end]
 
     # Normalize weird PDF unicode
     excerpt = unicodedata.normalize("NFKD", excerpt)
@@ -300,6 +327,9 @@ def get_excerpt(text):
 
     # Collapse multiple spaces
     excerpt = re.sub(r"\s+", " ", excerpt)
+
+    if len(excerpt) > 4000 or len(excerpt) == 0:
+        return "null"
 
     return excerpt.strip()
 
@@ -345,7 +375,9 @@ def get_case_result(text):
         to_ret = to_ret = match.group(1) or match.group(2)
         to_ret = to_ret.strip().replace("\n", "")
         words = to_ret.split()
+        if words[0] != "affirmed" and words[0] != "reversed" and words[0] != "vacated" :
+            return None
         return words[0]
 
-    print("couldn't find result")
+    # print("couldn't find result")
     return None
