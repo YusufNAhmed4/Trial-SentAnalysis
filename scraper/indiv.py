@@ -57,12 +57,13 @@ def cut_opening(text) :
     """
 
     match = re.search(
-        r"TERM,\s+(\d{4})",
+        r"T\s*E\s*R\s*M,\s+(\d{1,4})",
         text,
         flags=re.IGNORECASE
     )
 
     if not match:
+        print("no opening found")
         return None, text
 
     year = match.group(1)
@@ -71,13 +72,22 @@ def cut_opening(text) :
     # .*? = match everything
     # (?=...) stop at ...
     text = re.sub(
-        r"^.*?(?=during the time of these reports)",
+        r"^.*?(?=d\s*u\s*r\s*i\s*n\s*g "
+        r"t\s*h\s*e t\s*i\s*m\s*e "
+        r"o\s*f t\s*h\s*e\s*s\s*e "
+        r"r\s*e\s*p\s*o\s*r\s*t\s*s)",
         "",
         text,
         flags=re.DOTALL | re.IGNORECASE
     )
 
     return year, text
+
+def spaced(word):
+    """
+    Allows for spacing within words
+    """
+    return r"\s*".join(map(re.escape, word))
 
 def grab_names(text) :
     """
@@ -121,9 +131,11 @@ def grab_names(text) :
         name_split = name_title[0].split()
         # print("namesplit: ", name_split)
         to_ret.append(name_split[-1].lower())
-    if len(to_ret) != 9 :
+    if len(to_ret) > 9 :
         return to_ret[:9]
-
+    if len(to_ret) == 0 :
+        print("No names found")
+        return None
     # print(to_ret)
     return to_ret
 
@@ -133,9 +145,7 @@ def skip_to_cases(text, year) :
     """
     pattern = (
             rf"^.*?"
-            rf"(?=CASES ADJUDGED\s+"
-            rf"IN THE\s+"
-            rf"SUPREME COURT OF THE UNITED STATES\s+"
+            rf"(?= OF THE UNITED STATES\s+"
             rf"AT\s+"
             rf"OCTOBER TERM,\s*{re.escape(str(year))})"
         )
@@ -288,8 +298,33 @@ def get_excerpt(text):
     """
     Gets excerpt of case
     """
+    # print(text[:4000])
+    result_pattern = (
+        r"\n\s*"
+        r"(?:Certiorari\s+granted;\s*)?"
+        r"(?:"
+            r"\b\d{1,4}\s+"
+            r"[A-Za-z]\.\s+"
+            r"\d+[A-Za-z]\s+"
+            r"\d{1,4},\s*"
+            r"([A-Za-z ,]+?)"
+        r"|"
+            r"\b\d{1,4}\s+Fed\.\s+Appx\.\s+"
+            r"\d{1,4},\s*"
+            r"(?:\d{1,4},\s*)*"
+            r"([A-Za-z ,\n]+?)"
+        r"|"
+            r"\b\d{1,4}\s+F\.\s+Supp\.\s+"
+            r"\d{1,4},\s*"
+            r"(?:\d{1,4},\s*)*"
+            r"([A-Za-z ,\n]+?)"
+        r"|"
+            r"Certiorari\s*granted;"
+        r")"
+        r"\s*\."
+    )
     decided_match = re.search(
-        r"\bDecided\b.*?\n",
+        r"\s*D\s*e\s*c\s*i\s*d\s*e\s*d\b.*?\n",
         text,
         flags=re.IGNORECASE
     )
@@ -300,7 +335,7 @@ def get_excerpt(text):
     start = decided_match.end()
 
     held_match = re.search(
-        r"\n\s*Held\s*:",
+        rf"\s*H\s*e\s*l\s*d\s*:|{result_pattern}",
         text[start:],
         flags=re.IGNORECASE
     )
@@ -328,7 +363,12 @@ def get_excerpt(text):
     # Collapse multiple spaces
     excerpt = re.sub(r"\s+", " ", excerpt)
 
-    if len(excerpt) > 4000 or len(excerpt) == 0:
+    if len(excerpt) > 4000 :
+        print("excerpt too long")
+        # print(excerpt[:4000])
+        return "null"
+    if len(excerpt) == 0:
+        print("excerpt too short")
         return "null"
 
     return excerpt.strip()
@@ -357,9 +397,14 @@ def get_case_result(text):
             r"[A-Za-z]\.\s+"
             r"\d+[A-Za-z]\s+"
             r"\d{1,4},\s*"
-            r"([A-Za-z ]+?)"
+            r"([A-Za-z ,]+?)"
         r"|"
             r"\b\d{1,4}\s+Fed\.\s+Appx\.\s+"
+            r"\d{1,4},\s*"
+            r"(?:\d{1,4},\s*)*"
+            r"([A-Za-z ,\n]+?)"
+        r"|"
+            r"\b\d{1,4}\s+F\.\s+Supp\.\s+"
             r"\d{1,4},\s*"
             r"(?:\d{1,4},\s*)*"
             r"([A-Za-z ,\n]+?)"
@@ -367,12 +412,15 @@ def get_case_result(text):
         r"\s*\."
     )
 
+    # print(repr(text[:2000]))
     match = re.search(pattern, text, flags=re.IGNORECASE)
     if match :
         # print("TO CONSIDER: ", match)
+        # print(repr(text[54300:54355]))
         # print("GROUP ONE: ", match.group(1))
         # print("GROUP TWO: ", match.group(2))
-        to_ret = to_ret = match.group(1) or match.group(2)
+        to_ret = to_ret = match.group(1) or match.group(2) or match.group(3)
+        # print(to_ret)
         to_ret = to_ret.strip().replace("\n", "")
         words = to_ret.split()
         if words[0] != "affirmed" and words[0] != "reversed" and words[0] != "vacated" :

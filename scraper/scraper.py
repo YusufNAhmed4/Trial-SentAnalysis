@@ -18,7 +18,7 @@ def scrape_all_pdfs():
         if f.is_file()
     ]
     print(all_files)
-    # all_files = ["470bv.pdf"]
+    #all_files = ["420bv.pdf"]
 
     with open("output.jsonl", "a", encoding="utf-8") as out:
         with tqdm(desc="Scraping cases", unit="case") as pbar:
@@ -34,8 +34,11 @@ def load_pdf_text(path):
     loads in all pdf text into one string
     """
     pdf_path = "Trial Data PDFs/new PDFs/" + path
+    # print(pdf_path)
 
     with fitz.open(pdf_path) as doc:
+        if doc.page_count == 0 :
+            print("Error opening PDF")
         text = indiv.append_all(doc)
 
     return indiv.clean_pdf_text(text)
@@ -48,6 +51,8 @@ def extract_pdf_metadata(text):
     year, text = indiv.cut_opening(text)
     names = indiv.grab_names(text)
     text = indiv.skip_to_cases(text, year)
+
+    # print("Names for ", year, ": ", names)
 
     return year, names, text
 
