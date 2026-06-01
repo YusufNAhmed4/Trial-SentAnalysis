@@ -72,6 +72,7 @@ def make_vocabs(data) :
 
     justice_vocab = set(justices)
     results_vocab = set(results)
+    results_vocab = {"affirmed": 0, "reversed": 1, "vacated": 2}
     return justice_vocab, results_vocab
 
 def scale_years(data, train) :

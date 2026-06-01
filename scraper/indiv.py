@@ -57,12 +57,13 @@ def cut_opening(text) :
     """
 
     match = re.search(
-        r"TERM,\s+(\d{4})",
+        r"T\s*E\s*R\s*M,\s+(\d{1,4})",
         text,
         flags=re.IGNORECASE
     )
 
     if not match:
+        print("no opening found")
         return None, text
 
     year = match.group(1)
@@ -71,13 +72,45 @@ def cut_opening(text) :
     # .*? = match everything
     # (?=...) stop at ...
     text = re.sub(
-        r"^.*?(?=during the time of these reports)",
+        r"^.*?(?=d\s*u\s*r\s*i\s*n\s*g "
+        r"t\s*h\s*e t\s*i\s*m\s*e "
+        r"o\s*f t\s*h\s*e\s*s\s*e "
+        r"r\s*e\s*p\s*o\s*r\s*t\s*s)",
         "",
         text,
         flags=re.DOTALL | re.IGNORECASE
     )
 
     return year, text
+
+def spaced(word):
+    """
+    Allows for spacing within words
+    """
+    return r"\s*".join(map(re.escape, word))
+
+
+def clean_ocr_spacing(text):
+    """
+    should fix weird justice spacing
+    """
+    text = unicodedata.normalize("NFKC", text)
+
+    # Fix punctuation spacing: "Jr ." -> "Jr.", "Justice ." -> "Justice."
+    text = re.sub(r"\s+([.,;:])", r"\1", text)
+
+    # Fix common OCR-broken words in this section
+    fixes = {
+        r"J\s*u\s*s\s*t\s*i\s*c\s*e": "Justice",
+        r"A\s*s\s*s\s*o\s*c\s*i\s*a\s*t\s*e\s+": "Associate ",
+        r"C\s*h\s*i\s*e\s*f\s+J\s*u\s*s\s*t\s*i\s*c\s*e": "Chief Justice",
+        r"0\.": "O.",   # WILLIAM 0. DOUGLAS -> WILLIAM O. DOUGLAS
+    }
+
+    for pat, repl in fixes.items():
+        text = re.sub(pat, repl, text, flags=re.IGNORECASE)
+
+    return text
 
 def grab_names(text) :
     """
@@ -87,44 +120,35 @@ def grab_names(text) :
         r"d\s*u\s*r\s*i\s*n\s*g t\s*h\s*e "
         r"t\s*i\s*m\s*e o\s*f t\s*h\s*e\s*s\s*e "
         r"r\s*e\s*p\s*o\s*r\s*t\s*s"
-        r"\**\s*(.*?)(?=r\s*e\s*t\s*i\s*r\s*e\s*d|officers)",
+        r"\s*\**\s*(.*?)(?=r\s*e\s*t\s*i\s*r\s*e\s*d|officers)",
         text,
         flags=re.DOTALL | re.IGNORECASE
     )
-
+    # print(match.group(1))
 
     names = []
-
     if match:
-        names_block = match.group(1)
-
-        names_block = unicodedata.normalize("NFKC", names_block)
-        names_block = re.sub(
-            r'(?<=[.,])\d+',
-            '',
-            names_block
-        )
+        names_block = clean_ocr_spacing(match.group(1))
+        # print(names_block)
 
         names = [
             line.strip()
             for line in names_block.splitlines()
             if line.strip()
         ]
-    to_ret = []
-    # print(names)
-    for name in names :
-        if len(name) < 15 :
-            continue
-        # print("name: ", name)
-        name_title = name.split(",")
-        # print("nametitle: ", name_title)
-        name_split = name_title[0].split()
-        # print("namesplit: ", name_split)
-        to_ret.append(name_split[-1].lower())
-    if len(to_ret) != 9 :
-        return to_ret[:9]
+        # print(names)
 
-    # print(to_ret)
+
+    to_ret = []
+    for name in names :
+        name_title = name.split(",")
+        name_split = name_title[0].split()
+        to_ret.append(name_split[-1].lower())
+    if len(to_ret) > 9 :
+        return to_ret[:9]
+    if len(to_ret) == 0 :
+        print("No names found")
+        return None
     return to_ret
 
 def skip_to_cases(text, year) :
@@ -133,9 +157,7 @@ def skip_to_cases(text, year) :
     """
     pattern = (
             rf"^.*?"
-            rf"(?=CASES ADJUDGED\s+"
-            rf"IN THE\s+"
-            rf"SUPREME COURT OF THE UNITED STATES\s+"
+            rf"(?= OF THE UNITED STATES\s+"
             rf"AT\s+"
             rf"OCTOBER TERM,\s*{re.escape(str(year))})"
         )
@@ -152,12 +174,26 @@ def skip_to_next_term(text, year):
     """
     Skips to next instance of "Term, year" available
     Next case in modern volumes, next page in old volumes
+    CHANGED TO FIND "IT IS SO ORDERED"
     """
+    title_pattern = (
+        rf"(?:Syllabus|Per\s+Curiam|Opinion\s*of\s*the\s*Court)\s+"
+        rf"(?:\d{1,4}\s*U\.\s*S\.\s*)?"
+        rf"(?:\d{1,4}\s*U\s*S\s*)?"
+        rf"(?:\d{1,4}\s*U\s*)?"
+        rf"(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)"
+        rf"(?!\s+same\b))"
+    )
+
     matches = list(re.finditer(
-        rf"Term,\s*{re.escape(str(year))}\s*\n",
+        rf"Term,\s*{re.escape(str(year))}\s*\n"
+        rf"|i\s*t\s+i\s*s\s+s\s*o\s+o\s*r\s*d\s*e\s*r\s*e\s*d\s*\."
+        rf"|{title_pattern}",
         text,
         flags=re.IGNORECASE
     ))
+
+    # print("MATCHES: ", matches[:10])
 
     # Need at least two occurrences:
     # first = current case
@@ -243,8 +279,12 @@ def get_title(text):
     """
     Gets the next available title (normal case)
     """
+    # print("Text inputted for the title:", repr(text[:2500]))
     match = re.search(
-        r"(?:Syllabus|Per\s+Curiam)\s*(?:\d{1,4}\s+U\.\s*S\.\s*)?(?:\d{1,4}\s+U\s*S\s*)?"
+        r"(?:Syllabus|Per\s+Curiam|Opinion\s*of\s*the\s*Court)\s+"
+        r"(?:\d{1,4}\s*U\.\s*S\.\s*)?"
+        r"(?:\d{1,4}\s*U\s*S\s*)?"
+        r"(?:\d{1,4}\s*U\s*)?"
         r"(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)"
         r"(?!\s+same\b))",
         text,
@@ -253,13 +293,16 @@ def get_title(text):
 
     # print(match)
     if not match:
+        print("returning none for match?")
         return None, None
 
     raw_title = match.group(1).strip()
+    # print("Raw title: ", raw_title)
 
     # Clean up multi-line title into one line
     if len(raw_title) >= 200:
-        # print("Title hit 1000 characters; likely bad match. Skipping case.")
+        # print("Title hit 200 characters; likely bad match. Skipping case.")
+        # print("Raw title: ", repr(raw_title))
         return "raw_too_long", "Too Long"
 
     title = unicodedata.normalize("NFKD", " ".join(raw_title.split()))
@@ -278,6 +321,7 @@ def get_title(text):
 
     title = re.sub(r"\d{1,4} u s ", "", title)
 
+
     return raw_title, title.strip()
 
 
@@ -288,19 +332,54 @@ def get_excerpt(text):
     """
     Gets excerpt of case
     """
+    # print(text[:4000])
+    result_pattern = (
+        r"(?:"
+            r"\n\s*"
+            r"(?:Certiorari\s+granted;\s*)?"
+            r"(?:"
+                r"\b\d{1,4}\s+"
+                r"[A-Za-z]\.\s+"
+                r"\d+[A-Za-z]\s+"
+                r"\d{1,4},\s*"
+                r"([A-Za-z ,]+?)"
+            r"|"
+                r"\b\d{1,4}\s+Fed\.\s+Appx\.\s+"
+                r"\d{1,4},\s*"
+                r"(?:\d{1,4},\s*)*"
+                r"([A-Za-z ,\n]+?)"
+            r"|"
+                r"\b\d{1,4}\s+F\.\s+Supp\.\s+"
+                r"\d{1,4},\s*"
+                r"(?:\d{1,4},\s*)*"
+                r"([A-Za-z ,\n]+?)"
+            r"|"
+                r"Certiorari\s+granted;\s*"
+                r"([A-Za-z ,\n]+?)"
+            r"|"
+                r"(Affirmed|Reversed|Vacated)"
+            r")"
+        r"|"
+            r"Judgment\s+"
+            r"(affirmed|reversed|vacated).*?"
+        r")"
+        r"\s*\."
+    )
     decided_match = re.search(
-        r"\bDecided\b.*?\n",
+        r"\s*D\s*e\s*c\s*i\s*d\s*e\s*d.*?\n",
         text,
-        flags=re.IGNORECASE
+        flags=re.DOTALL | re.IGNORECASE
     )
 
     if not decided_match:
         return None
 
-    start = decided_match.end()
+    start = decided_match.end() - 1
+
+
 
     held_match = re.search(
-        r"\n\s*Held\s*:",
+        rf"\s*H\s*e\s*l\s*d\s*:|{result_pattern}",
         text[start:],
         flags=re.IGNORECASE
     )
@@ -328,7 +407,12 @@ def get_excerpt(text):
     # Collapse multiple spaces
     excerpt = re.sub(r"\s+", " ", excerpt)
 
-    if len(excerpt) > 4000 or len(excerpt) == 0:
+    if len(excerpt) > 4000 :
+        # print("excerpt too long")
+        # print(excerpt[:4000])
+        return "null"
+    if len(excerpt.strip()) == 0:
+        #print("excerpt too short")
         return "null"
 
     return excerpt.strip()
@@ -350,34 +434,49 @@ def get_case_result(text):
     Finds result of case
     """
     pattern = (
-        r"\n\s*"
-        r"(?:Certiorari\s+granted;\s*)?"
         r"(?:"
-            r"\b\d{1,4}\s+"
-            r"[A-Za-z]\.\s+"
-            r"\d+[A-Za-z]\s+"
-            r"\d{1,4},\s*"
-            r"([A-Za-z ]+?)"
+            r"\n\s*"
+            r"(?:Certiorari\s+granted;\s*)?"
+            r"(?:"
+                r"\b\d{1,4}\s+"
+                r"[A-Za-z]\.\s+"
+                r"\d+[A-Za-z]\s+"
+                r"\d{1,4},\s*"
+                r"([A-Za-z ,]+?)"
+            r"|"
+                r"\b\d{1,4}\s+Fed\.\s+Appx\.\s+"
+                r"\d{1,4},\s*"
+                r"(?:\d{1,4},\s*)*"
+                r"([A-Za-z ,\n]+?)"
+            r"|"
+                r"\b\d{1,4}\s+F\.\s+Supp\.\s+"
+                r"\d{1,4},\s*"
+                r"(?:\d{1,4},\s*)*"
+                r"([A-Za-z ,\n]+?)"
+            r"|"
+                r"Certiorari\s+granted;\s*"
+                r"([A-Za-z ,\n]+?)"
+            r"|"
+                r"(Affirmed|Reversed|Vacated).*?"
+            r")"
         r"|"
-            r"\b\d{1,4}\s+Fed\.\s+Appx\.\s+"
-            r"\d{1,4},\s*"
-            r"(?:\d{1,4},\s*)*"
-            r"([A-Za-z ,\n]+?)"
+            r"Judgment\s+"
+            r"(affirmed|reversed|vacated).*?"
         r")"
         r"\s*\."
     )
+    # print("what result matcher sees: ", repr(text[:1000]))
 
-    match = re.search(pattern, text, flags=re.IGNORECASE)
+    match = re.search(pattern, text, flags=re.DOTALL | re.IGNORECASE)
     if match :
-        # print("TO CONSIDER: ", match)
-        # print("GROUP ONE: ", match.group(1))
-        # print("GROUP TWO: ", match.group(2))
-        to_ret = to_ret = match.group(1) or match.group(2)
+        to_ret = next((g for g in match.groups() if g), None)
         to_ret = to_ret.strip().replace("\n", "")
-        words = to_ret.split()
+        words = to_ret.lower().split()
         if words[0] != "affirmed" and words[0] != "reversed" and words[0] != "vacated" :
+            # print("fourth result option? ", words[:5])
             return None
+        #print("result: ", words[:5])
         return words[0]
 
-    # print("couldn't find result")
+    print("couldn't find result")
     return None
