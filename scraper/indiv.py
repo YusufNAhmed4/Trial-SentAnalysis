@@ -5,6 +5,53 @@ Functions which compile, clean, and collate all case data
 import re
 import unicodedata
 
+
+TITLE_PATTERN = (r"(?:Syllabus|Per\s+Curiam|Opinion\s*of\s*the\s*Court)\s+"
+        r"(?:\d{1,4}\s*U\.\s*S\.\s*)?"
+        r"(?:\d{1,4}\s*U\s*S\s*)?"
+        r"(?:\d{1,4}\s*U\s*)?"
+        r"(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)"
+        r"(?!\s+same\b))")
+
+
+RESULT_PATTERN = (
+    r"(?:"
+        r"\n\s*"
+        r"(?:Certiorari\s+granted;\s*)?"
+        r"(?:\d{1,4}\s*[A-za-z]{1,4}\.\s*\d{1,4}\s*,\s*)?"
+        r"(?:"
+            r"\b\d{1,4}\s*"
+            r"(?:[A-Za-z]\.\s+)*"
+            r"\d+[A-Za-z]\s+"
+            r"\d{1,4},\s*"
+            r"([A-Za-z ,]+?)"
+        r"|"
+            r"\b\d{1,4}\s+Fed\.\s+Appx\.\s+"
+            r"\d{1,4},\s*"
+            r"(?:\d{1,4},\s*)*"
+            r"([A-Za-z ,\n]+?)"
+        r"|"
+            r"\b\d{1,4}\s+F\.\s+Supp\.\s+"
+            r"\d{1,4},\s*"
+            r"(?:\d{1,4},\s*)*"
+            r"([A-Za-z ,\n]+?)"
+        r"|"
+            r"Certiorari\s+granted;\s*"
+            r"([A-Za-z ,\n]+?)"
+        r"|"
+            r"(Affirmed|Reversed|Vacated).*?"
+        r")"
+    r"|"
+        r"Judgment\s+"
+        r"(affirmed|reversed|vacated).*?"
+    r"|"
+        r"(Appeal dismissed)"
+    r")"
+    r"\s*\."
+)
+
+
+
 def append_all(doc) :
     """
     Appends all pages from the open document into one string
@@ -143,6 +190,8 @@ def grab_names(text) :
     for name in names :
         name_title = name.split(",")
         name_split = name_title[0].split()
+        if name_split[-1].lower() == "publication" :
+            continue
         to_ret.append(name_split[-1].lower())
     if len(to_ret) > 9 :
         return to_ret[:9]
@@ -176,14 +225,7 @@ def skip_to_next_term(text, year):
     Next case in modern volumes, next page in old volumes
     CHANGED TO FIND "IT IS SO ORDERED"
     """
-    title_pattern = (
-        rf"(?:Syllabus|Per\s+Curiam|Opinion\s*of\s*the\s*Court)\s+"
-        rf"(?:\d{1,4}\s*U\.\s*S\.\s*)?"
-        rf"(?:\d{1,4}\s*U\s*S\s*)?"
-        rf"(?:\d{1,4}\s*U\s*)?"
-        rf"(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)"
-        rf"(?!\s+same\b))"
-    )
+    title_pattern = TITLE_PATTERN
 
     matches = list(re.finditer(
         rf"Term,\s*{re.escape(str(year))}\s*\n"
@@ -280,20 +322,11 @@ def get_title(text):
     Gets the next available title (normal case)
     """
     # print("Text inputted for the title:", repr(text[:2500]))
-    match = re.search(
-        r"(?:Syllabus|Per\s+Curiam|Opinion\s*of\s*the\s*Court)\s+"
-        r"(?:\d{1,4}\s*U\.\s*S\.\s*)?"
-        r"(?:\d{1,4}\s*U\s*S\s*)?"
-        r"(?:\d{1,4}\s*U\s*)?"
-        r"(.*?)(?=\s*(?:Certiorari\s+to\s+the|Appeal\s+from\s+the|On\s+petition\s+for)"
-        r"(?!\s+same\b))",
-        text,
-        flags=re.DOTALL | re.IGNORECASE
-    )
+    match = re.search(TITLE_PATTERN, text, flags=re.DOTALL | re.IGNORECASE)
 
     # print(match)
     if not match:
-        print("returning none for match?")
+        # print("returning none for match?")
         return None, None
 
     raw_title = match.group(1).strip()
@@ -333,38 +366,6 @@ def get_excerpt(text):
     Gets excerpt of case
     """
     # print(text[:4000])
-    result_pattern = (
-        r"(?:"
-            r"\n\s*"
-            r"(?:Certiorari\s+granted;\s*)?"
-            r"(?:"
-                r"\b\d{1,4}\s+"
-                r"[A-Za-z]\.\s+"
-                r"\d+[A-Za-z]\s+"
-                r"\d{1,4},\s*"
-                r"([A-Za-z ,]+?)"
-            r"|"
-                r"\b\d{1,4}\s+Fed\.\s+Appx\.\s+"
-                r"\d{1,4},\s*"
-                r"(?:\d{1,4},\s*)*"
-                r"([A-Za-z ,\n]+?)"
-            r"|"
-                r"\b\d{1,4}\s+F\.\s+Supp\.\s+"
-                r"\d{1,4},\s*"
-                r"(?:\d{1,4},\s*)*"
-                r"([A-Za-z ,\n]+?)"
-            r"|"
-                r"Certiorari\s+granted;\s*"
-                r"([A-Za-z ,\n]+?)"
-            r"|"
-                r"(Affirmed|Reversed|Vacated)"
-            r")"
-        r"|"
-            r"Judgment\s+"
-            r"(affirmed|reversed|vacated).*?"
-        r")"
-        r"\s*\."
-    )
     decided_match = re.search(
         r"\s*D\s*e\s*c\s*i\s*d\s*e\s*d.*?\n",
         text,
@@ -379,7 +380,7 @@ def get_excerpt(text):
 
 
     held_match = re.search(
-        rf"\s*H\s*e\s*l\s*d\s*:|{result_pattern}",
+        rf"\s*H\s*e\s*l\s*d\s*:|{RESULT_PATTERN}",
         text[start:],
         flags=re.IGNORECASE
     )
@@ -433,41 +434,9 @@ def get_case_result(text):
     """
     Finds result of case
     """
-    pattern = (
-        r"(?:"
-            r"\n\s*"
-            r"(?:Certiorari\s+granted;\s*)?"
-            r"(?:"
-                r"\b\d{1,4}\s+"
-                r"[A-Za-z]\.\s+"
-                r"\d+[A-Za-z]\s+"
-                r"\d{1,4},\s*"
-                r"([A-Za-z ,]+?)"
-            r"|"
-                r"\b\d{1,4}\s+Fed\.\s+Appx\.\s+"
-                r"\d{1,4},\s*"
-                r"(?:\d{1,4},\s*)*"
-                r"([A-Za-z ,\n]+?)"
-            r"|"
-                r"\b\d{1,4}\s+F\.\s+Supp\.\s+"
-                r"\d{1,4},\s*"
-                r"(?:\d{1,4},\s*)*"
-                r"([A-Za-z ,\n]+?)"
-            r"|"
-                r"Certiorari\s+granted;\s*"
-                r"([A-Za-z ,\n]+?)"
-            r"|"
-                r"(Affirmed|Reversed|Vacated).*?"
-            r")"
-        r"|"
-            r"Judgment\s+"
-            r"(affirmed|reversed|vacated).*?"
-        r")"
-        r"\s*\."
-    )
     # print("what result matcher sees: ", repr(text[:1000]))
 
-    match = re.search(pattern, text, flags=re.DOTALL | re.IGNORECASE)
+    match = re.search(RESULT_PATTERN, text, flags=re.DOTALL | re.IGNORECASE)
     if match :
         to_ret = next((g for g in match.groups() if g), None)
         to_ret = to_ret.strip().replace("\n", "")

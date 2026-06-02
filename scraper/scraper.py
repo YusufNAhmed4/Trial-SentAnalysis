@@ -19,15 +19,17 @@ def scrape_all_pdfs(pdf_dir, output_file, output_type, max_files):
         if f.is_file()
     ]
     print(all_files)
-    all_files = ["429bv.pdf"]
+    # all_files = ["429bv.pdf"]
+    num_cases = 0
 
     with open(output_file, output_type, encoding="utf-8") as out:
         with tqdm(desc="Scraping cases", unit="case") as pbar:
             for file in all_files:
                 cases = scrape_one_pdf(file, pdf_dir, max_files, pbar)
-
+                num_cases += len(cases)
                 for case in cases:
                     out.write(json.dumps(case, ensure_ascii=False) + "\n")
+    print("Avg cases per file: ", num_cases / len(all_files))
 
 
 def load_pdf_text(path, pdf_dir):
