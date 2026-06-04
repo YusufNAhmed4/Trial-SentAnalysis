@@ -310,6 +310,7 @@ def get_first_title(text, year):
 
     title = re.sub(r"\d{3,4}", "", title, flags=re.IGNORECASE)
     title = re.sub(r"\s*u\s*s\s*", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s*on\s*", "", title, flags=re.IGNORECASE)
 
     #Just get rid of all digits
 
@@ -367,6 +368,7 @@ def get_title(text):
 
     title = re.sub(r"\d{3,4}", "", title, flags=re.IGNORECASE)
     title = re.sub(r"\s*u\s*s\s*", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s*on\s*", "", title, flags=re.IGNORECASE)
 
     return raw_title, title.strip()
 
