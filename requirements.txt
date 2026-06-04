@@ -2,3 +2,4 @@ fitz
 pymupdf
 tensorflow
 sklearn
+joblib

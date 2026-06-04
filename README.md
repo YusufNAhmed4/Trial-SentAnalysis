@@ -13,4 +13,16 @@ Data is formatted like so:
 
 {year decided, [yustice names], case name, case excerpt, case decision}
 
-Batches of 10-50 case files recommended, for older volumes you will need to double check scraped results. Justices may not show up and case excerpts may be erroneous. 
+
+Scraper Usage: 
+
+python scraper/scraper.py <input_directory> <output_file> <write_or_append> <max_files>
+
+Set <max_files> to 0 if you want to scrape all files in <input_directory>
+
+Batches of 10-25 case files recommended, for older volumes you will need to double check scraped results. 
+Justices may be erroneous, e.g. "stewart" may appear as "art". 
+
+Model Usage:
+
+python model/<model>.py

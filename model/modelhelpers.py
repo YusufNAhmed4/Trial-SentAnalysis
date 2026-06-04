@@ -30,6 +30,45 @@ def train_test(data, train_ratio=0.8, seed=1832) :
 
     return train_data, test_data
 
+def train_test_temporal(data, train_ratio=0.8):
+    """
+    Train on older cases, test on newer cases.
+    """
+
+    data_copy = sorted(
+        data,
+        key=lambda x: x["year"]
+    )
+
+    print("Amt of data:", len(data_copy))
+
+    results = [x["result"] for x in data_copy]
+
+    print("Reversed count:", results.count("reversed"))
+    print("Affirmed count:", results.count("affirmed"))
+    print("Vacated count:", results.count("vacated"))
+
+    split_idx = int(len(data_copy) * train_ratio)
+
+    train_data = data_copy[:split_idx]
+    test_data = data_copy[split_idx:]
+
+    print()
+    print(
+        "Train years:",
+        train_data[0]["year"],
+        "-",
+        train_data[-1]["year"]
+    )
+    print(
+        "Test years:",
+        test_data[0]["year"],
+        "-",
+        test_data[-1]["year"]
+    )
+
+    return train_data, test_data
+
 def make_pairs(data):
     """
     Takes a JSON list and makes a list of (input, label) tuples 

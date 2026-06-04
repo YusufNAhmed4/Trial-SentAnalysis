@@ -14,6 +14,7 @@ TITLE_PATTERN = (r"(?:Syllabus|Per\s+Curiam|Opinion\s*of\s*the\s*Court)\s+"
         r"(?!\s+same\b))")
 
 
+
 RESULT_PATTERN = (
     r"(?:"
         r"\n\s*"
@@ -281,6 +282,11 @@ def get_first_title(text, year):
 
     raw_title = match.group(1).strip()
 
+    if len(raw_title) >= 200:
+        # print("Title hit 200 characters; likely bad match. Skipping case.")
+        # print("Raw title: ", repr(raw_title))
+        return "raw_too_long", "Too Long"
+
     # Clean up multi-line title into one line
     to_ret = " ".join(
         line.strip()
@@ -300,6 +306,14 @@ def get_first_title(text, year):
 
     # Collapse repeated spaces
     title = re.sub(r"\s+", " ", title)
+
+
+    title = re.sub(r"\d{3,4}", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s*u\s*s\s*", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s*on\s*", "", title, flags=re.IGNORECASE)
+
+    #Just get rid of all digits
+
 
     return raw_title, title.strip()
 
@@ -352,8 +366,9 @@ def get_title(text):
     # Collapse repeated spaces
     title = re.sub(r"\s+", " ", title)
 
-    title = re.sub(r"\d{1,4} u s ", "", title)
-
+    title = re.sub(r"\d{3,4}", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s*u\s*s\s*", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s*on\s*", "", title, flags=re.IGNORECASE)
 
     return raw_title, title.strip()
 
