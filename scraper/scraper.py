@@ -96,22 +96,15 @@ def extract_case(text, raw, title, year, names):
     """
     wraps up info into a case JSON
     """
-    # if title == "moody v daggett":
-    #     print("found moody:", text[:1000])
     text = indiv.skip_to_title(text, raw)
-    # if title == "hutto arkansas department of correction commissioner v ross":
-    #     print("found hutto:", repr(text[:2600]))
 
     if text is None:
         print("text was none after skipping to title")
         return None, None
 
     excerpt = indiv.get_excerpt(text)
-    # if title == "moody v. daggett" :
-    #     print("MOODY FOUND")
     result = indiv.get_case_result(text)
-    # if title == "moody v. daggett" :
-    #     print(result)
+
 
     if result is None:
         #print("RESULT WAS NONE, TITLE: ", title)
@@ -152,7 +145,6 @@ def scrape_one_pdf(path, pdf_dir, max_files, pbar=None):
         if "Certiorari dismissed" in text[text.index(raw):text.find(raw) + 500] :
             #print("fake case found")
             text = indiv.skip_to_next_term(text, year)
-            # print(text[:500])
             continue
 
         titles.add(title)
@@ -167,12 +159,8 @@ def scrape_one_pdf(path, pdf_dir, max_files, pbar=None):
             if text is None:
                 print("couldn't find next title text case")
                 break
-            # if title == "massachusetts et al v feeney on" :
-            #     print("found mass v feeny: ", repr(text[:2000]))
+
             text = indiv.skip_to_next_term(text, year)
-            # print("Skipping text")
-            # if title == "massachusetts et al v feeney on" :
-            #     print("found mass v feeny after: ", repr(text[:2000]))
 
             if text is None:
                 print("Could not recover after bad case:", title)
@@ -197,15 +185,8 @@ def scrape_one_pdf(path, pdf_dir, max_files, pbar=None):
                 "cases": len(cases)
             })
 
-        # if title == "united states v kopp":
-        #     print("BEFORE JUMP: ", repr(text[:2500]))
-        #     print(text.find("DAVIS"))
-        #     print("")
-
         text = indiv.skip_to_next_term(text, year)
-        # if title == "united states v kopp":
-        #     print(text[:2500])
-        #     print(text.find("DAVIS"))
+
         if text is None:
             # print("couldn't find next term after normal case work")
             break
@@ -216,8 +197,6 @@ def scrape_one_pdf(path, pdf_dir, max_files, pbar=None):
             break
 
     return cases
-
-# print("avg excerpt length: ", excerpt_length / len(cases))
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
