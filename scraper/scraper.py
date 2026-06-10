@@ -19,17 +19,17 @@ def scrape_all_pdfs(pdf_dir, output_file, output_type, max_files):
         if f.is_file()
     ]
     print(all_files)
-    # all_files = ["429bv.pdf"]
-    num_cases = 0
+    # all_files = ["551bv.pdf"]
+    # num_cases = 0
 
     with open(output_file, output_type, encoding="utf-8") as out:
         with tqdm(desc="Scraping cases", unit="case") as pbar:
             for file in all_files:
                 cases = scrape_one_pdf(file, pdf_dir, max_files, pbar)
-                num_cases += len(cases)
+                # num_cases += len(cases)
                 for case in cases:
                     out.write(json.dumps(case, ensure_ascii=False) + "\n")
-    print("Avg cases per file: ", num_cases / len(all_files))
+    # print("Avg cases per file: ", num_cases / len(all_files))
 
 
 def load_pdf_text(path, pdf_dir):
@@ -73,11 +73,8 @@ def get_next_valid_title(text, year, titles, first):
         # print("title not found, searching again")
         reason = "too-long title" if title == "Too Long" else "already-seen title"
 
+        # print(f"messed up title because of {reason}")
         text = indiv.skip_to_next_term(text, year)
-
-        # if title == "united states v kopp" :
-        #     print("found kopp")
-        #     print(text[:2500])
 
         if text is None:
             print(f"text broke after {reason}")
@@ -102,12 +99,12 @@ def extract_case(text, raw, title, year, names):
         print("text was none after skipping to title")
         return None, None
 
-    excerpt = indiv.get_excerpt(text)
+    excerpt, text = indiv.get_excerpt(text)
     result = indiv.get_case_result(text)
 
 
     if result is None:
-        #print("RESULT WAS NONE, TITLE: ", title)
+        # print("RESULT WAS NONE, TITLE: ", title)
         return None, text
 
     case = {
@@ -143,7 +140,7 @@ def scrape_one_pdf(path, pdf_dir, max_files, pbar=None):
             # print("couldn't find next title")
             break
         if "Certiorari dismissed" in text[text.index(raw):text.find(raw) + 500] :
-            #print("fake case found")
+            # print("fake case found")
             text = indiv.skip_to_next_term(text, year)
             continue
 
@@ -160,6 +157,7 @@ def scrape_one_pdf(path, pdf_dir, max_files, pbar=None):
                 print("couldn't find next title text case")
                 break
 
+            # print("skipping after case failure")
             text = indiv.skip_to_next_term(text, year)
 
             if text is None:
@@ -185,6 +183,7 @@ def scrape_one_pdf(path, pdf_dir, max_files, pbar=None):
                 "cases": len(cases)
             })
 
+        # print("skipping after normal case flow")
         text = indiv.skip_to_next_term(text, year)
 
         if text is None:

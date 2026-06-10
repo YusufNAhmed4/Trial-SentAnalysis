@@ -15,38 +15,61 @@ TITLE_PATTERN = (r"(?:Syllabus|Per\s+Curiam|Opinion\s*of\s*the\s*Court)\s+"
 
 
 
+DOCKET = r"(?:No\.\s*\d{1,3}[–-]\d{1,4},\s*)?"
+
+CITE = (
+    r"(?:"
+        r"\d{1,4}\s+[A-Z]\.[A-Z]\.\s+\d{1,4}"        # 2017 S.D. 56
+    r"|"
+        r"\d{1,4}\s+F\.\s+\d+d\s+\d{1,4}"            # 459 F. 3d 1
+    r"|"
+        r"\d{1,4}\s+Fed\.\s+Appx\.\s+\d{1,4}"        # 140 Fed. Appx. 746
+    r"|"
+        r"\d{1,4}\s+F\.\s+Supp\.\s+(?:2d\s+|3d\s+)?\d{1,4}"  # F. Supp.
+    r"|"
+        r"\d{1,4}\s+"
+        r"(?:(?:[A-Za-z]\.\s*)+|[A-Za-z]{2,}\.)\s+"
+        r"(?:\d+(?:d|st|nd|rd|th)\s+)?"
+        r"\d{1,4}"
+        # 957 So. 2d 757
+        # 156 Wash. 2d 543
+        # 130 P. 3d 352
+        # 901 N. W. 2d 754
+        # 275 Ore. 1
+    r")"
+)
+
+CITE_CHAIN = (
+    rf"{DOCKET}{CITE}"
+    r"(?:\s*\(.*?\)\s*)?"
+    rf"(?:\s*(?:;|,|\band\b)\s*{DOCKET}{CITE}(?:\s*\(.*?\)\s*)?)*"
+    r",\s*"
+)
+
 RESULT_PATTERN = (
     r"(?:"
-        r"\n\s*"
+        r"(?:^|\n)\s*"
         r"(?:Certiorari\s+granted;\s*)?"
-        r"(?:\d{1,4}\s*[A-za-z]{1,4}\.\s*\d{1,4}\s*,\s*)?"
-        r"(?:"
-            r"\b\d{1,4}\s*"
-            r"(?:[A-Za-z]\.\s+)*"
-            r"\d+[A-Za-z]\s+"
-            r"\d{1,4},\s*"
-            r"([A-Za-z ,]+?)"
-        r"|"
-            r"\b\d{1,4}\s+Fed\.\s+Appx\.\s+"
-            r"\d{1,4},\s*"
-            r"(?:\d{1,4},\s*)*"
-            r"([A-Za-z ,\n]+?)"
-        r"|"
-            r"\b\d{1,4}\s+F\.\s+Supp\.\s+"
-            r"\d{1,4},\s*"
-            r"(?:\d{1,4},\s*)*"
-            r"([A-Za-z ,\n]+?)"
-        r"|"
-            r"Certiorari\s+granted;\s*"
-            r"([A-Za-z ,\n]+?)"
-        r"|"
-            r"(Affirmed|Reversed|Vacated).*?"
-        r")"
+        r"(?:Motion\s+granted;\s*)?"
+        rf"{CITE_CHAIN}"
+        r"(?!\s*which|\s*and)"
+        r"([A-Za-z ,\n]+?)"
+        r"(?:;[^.]*)?"
+    r"|"
+        r"(?:^|\n)\s*"
+        r"Certiorari\s+granted;\s*"
+        r"([A-Za-z ,\n]+?)"
+    r"|"
+        r"\n\s*"
+        r"(?-i:(Affirmed|Reversed|Vacated))"
+        r"(?:\s+(?:by an equally divided Court|in part|and remanded))?"
     r"|"
         r"Judgment\s+"
         r"(affirmed|reversed|vacated).*?"
     r"|"
-        r"(Appeal dismissed)"
+        r"(?-i:(Appeal dismissed))"
+    r"|"
+        r"(?-i:(Certiorari dismissed))"
     r")"
     r"\s*\."
 )
@@ -92,7 +115,7 @@ def clean_pdf_text(text):
         if c.isprintable() or c == '\n'
     )
     text = text.replace("\u2019", "'")
-    text = text.replace("\u00a7", "S. ")
+    # text = text.replace("\u00a7", "S. ")
     text = text.replace("\u201c", '"')
     text = text.replace("\u201d", '"')
     text = text.replace("\u00b7", " ")
@@ -231,6 +254,7 @@ def skip_to_next_term(text, year):
     matches = list(re.finditer(
         rf"Term,\s*{re.escape(str(year))}\s*\n"
         rf"|i\s*t\s+i\s*s\s+s\s*o\s+o\s*r\s*d\s*e\s*r\s*e\s*d\s*\."
+        rf"|delivered the opinion"
         rf"|{title_pattern}",
         text,
         flags=re.IGNORECASE
@@ -242,7 +266,9 @@ def skip_to_next_term(text, year):
     # first = current case
     # second = next case
     if len(matches) >= 2:
-        return text[matches[1].start():]
+        text = text[matches[1].start():]
+        # print("SKIPPING TO HERE: ", text[:100])
+        return text
 
     return None
 
@@ -309,10 +335,10 @@ def get_first_title(text, year):
 
 
     title = re.sub(r"\d{3,4}", "", title, flags=re.IGNORECASE)
-    title = re.sub(r"\s*u\s*s\s*", "", title, flags=re.IGNORECASE)
-    title = re.sub(r"\s*on\s*", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s+u\s+s\s*", "", title, flags=re.IGNORECASE)
+    if title[-3:] == " on" :
+        title = title[:-3]
 
-    #Just get rid of all digits
 
 
     return raw_title, title.strip()
@@ -344,7 +370,7 @@ def get_title(text):
         return None, None
 
     raw_title = match.group(1).strip()
-    # print("Raw title: ", raw_title)
+    # print("Raw title: ", raw_title[:100])
 
     # Clean up multi-line title into one line
     if len(raw_title) >= 200:
@@ -367,8 +393,9 @@ def get_title(text):
     title = re.sub(r"\s+", " ", title)
 
     title = re.sub(r"\d{3,4}", "", title, flags=re.IGNORECASE)
-    title = re.sub(r"\s*u\s*s\s*", "", title, flags=re.IGNORECASE)
-    title = re.sub(r"\s*on\s*", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s+u\s+s\s*", "", title, flags=re.IGNORECASE)
+    if title[-3:] == " on" :
+        title = title[:-3]
 
     return raw_title, title.strip()
 
@@ -388,11 +415,9 @@ def get_excerpt(text):
     )
 
     if not decided_match:
-        return None
+        return None, text
 
     start = decided_match.end() - 1
-
-
 
     held_match = re.search(
         rf"\s*H\s*e\s*l\s*d\s*:|{RESULT_PATTERN}",
@@ -401,18 +426,25 @@ def get_excerpt(text):
     )
 
     if not held_match:
-        return None
+        return None, text
 
     end = start + held_match.start()
     excerpt = text[start:end]
+    # print("end is here: ", end)
+    # print("end + len(excerpt): ", end + len(excerpt))
+    # text = text[end:]
 
     # Normalize weird PDF unicode
     excerpt = unicodedata.normalize("NFKD", excerpt)
 
+
+    excerpt = re.sub(r"Cite as: .*?\n", "", excerpt)
+    excerpt = re.sub(r"\d{1,4}\s*[A-Z0-9',. \n]+\s*v.\s*[A-Z0-9',. \n]+\n", " ", excerpt)
+    excerpt = re.sub(r"(?:\d{1,4})?\s*Syllabus\s*", " ", excerpt)
     # Remove footnote markers like:
     # "Marshall.1" or "decision[2]"
     excerpt = re.sub(r"\[\d+\]", " ", excerpt)
-    excerpt = re.sub(r"(?<!\()\b\d+\b(?!\))", " ", excerpt)
+    # excerpt = re.sub(r"(?<!\()\b\d+\b(?!\))", " ", excerpt)
 
     # Replace line breaks/tabs with spaces
     excerpt = re.sub(r"[\n\t]+", " ", excerpt)
@@ -426,12 +458,12 @@ def get_excerpt(text):
     if len(excerpt) > 4000 :
         # print("excerpt too long")
         # print(excerpt[:4000])
-        return "null"
+        return "null", text
     if len(excerpt.strip()) == 0:
         #print("excerpt too short")
-        return "null"
+        return "null", text
 
-    return excerpt.strip()
+    return excerpt.strip(), text
 
 
 # \d{1,4}        # 1-4 ints
@@ -449,17 +481,30 @@ def get_case_result(text):
     """
     Finds result of case
     """
-    # print("what result matcher sees: ", repr(text[:1000]))
+    # print("what result matcher sees: ", repr(text[:5000]))
 
     match = re.search(RESULT_PATTERN, text, flags=re.DOTALL | re.IGNORECASE)
     if match :
+
+        # group_num = next(
+        #     (i for i, g in enumerate(match.groups(), start=1) if g is not None),
+        #     None
+        # )
+
+        # if group_num is not None:
+        #     start, end = match.span(group_num)
+        #     print(text[start:end])
+
         to_ret = next((g for g in match.groups() if g), None)
-        to_ret = to_ret.strip().replace("\n", "")
-        words = to_ret.lower().split()
+
+        temp = to_ret.strip().replace("\n", "")
+        temp = temp.replace("-", "")
+        words = temp.lower().split()
         if words[0] != "affirmed" and words[0] != "reversed" and words[0] != "vacated" :
             # print("fourth result option? ", words[:5])
             return None
         #print("result: ", words[:5])
+        #text = text[text.find(to_ret):]
         return words[0]
 
     print("couldn't find result")
