@@ -3,26 +3,31 @@ SVC model
 '''
 
 # pylint: disable=invalid-name
+import sys
 import json
 import numpy as np
 from scipy.sparse import hstack, csr_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.svm import LinearSVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.multiclass import OneVsRestClassifier
 import joblib
 import modelhelpers
 
 
-def train_svc_model():
+def train_svc_model(input_file, sort_type):
     """
     Trains a Support Vector Classifier model.
     """
 
-    with open("output2.jsonl", "r", encoding="utf-8") as file:
+    with open(input_file, "r", encoding="utf-8") as file:
         data = [json.loads(line) for line in file if line.strip()]
 
-
-    train, test = modelhelpers.train_test_temporal(data)
+    if int(sort_type) == 1 :
+        train, test = modelhelpers.train_test_temporal(data)
+    else :
+        train, test = modelhelpers.train_test(data, train_ratio=0.8)
     train = modelhelpers.make_pairs(train)
     test = modelhelpers.make_pairs(test)
 
@@ -60,11 +65,27 @@ def train_svc_model():
         stop_words="english"
     )
 
+    # excerpt_char_vectorizer = TfidfVectorizer(
+    #     analyzer="char_wb",
+    #     ngram_range=(3, 5),
+    #     min_df=2,
+    #     max_features=40000,
+    #     sublinear_tf=True
+    # )
+
     X_train_title = title_vectorizer.fit_transform(train_titles)
     X_train_excerpt = excerpt_vectorizer.fit_transform(train_excerpts)
+    # X_train_excerpt_char = excerpt_char_vectorizer.fit_transform(train_excerpts)
+
 
     X_test_title = title_vectorizer.transform(test_titles)
     X_test_excerpt = excerpt_vectorizer.transform(test_excerpts)
+    # X_test_excerpt_char = excerpt_char_vectorizer.fit_transform(test_excerpts)
+
+
+    # X_train_title *= 2
+    # X_test_title *= 2
+
 
     # Year feature
     year_train = np.array(
@@ -97,16 +118,18 @@ def train_svc_model():
 
     # Combine all features
     X_train = hstack([
-        X_train_title,
+        # X_train_title,
         X_train_excerpt,
-        csr_matrix(year_train),
+        # X_train_excerpt_char,
+        #csr_matrix(year_train),
         justice_train
     ])
 
     X_test = hstack([
-        X_test_title,
+        # X_test_title,
         X_test_excerpt,
-        csr_matrix(year_test),
+        # X_test_excerpt_char,
+        #csr_matrix(year_test),
         justice_test
     ])
 
@@ -114,63 +137,122 @@ def train_svc_model():
     y_train = np.array([y for _, y in train])
     y_test = np.array([y for _, y in test])
 
-    c = 1.0
-    clf = LinearSVC(
-        class_weight={
-            0: 1.0,
-            1: 1.0,
-            2: 2.0
-        },
-        C=c,
-        max_iter=10000
-    )
+    for c in [0.01, 0.1, 0.3, 1, 3, 10, 30, 50, 100] :
+    # clf = LinearSVC(
+    #     class_weight={
+    #         0: 1.0,
+    #         1: 1.0,
+    #         2: 3.0
+    #     },
+    #     C=c,
+    #     max_iter=10000
+    # )
 
-    clf.fit(X_train, y_train)
+        clf = OneVsRestClassifier(LogisticRegression(
+            C=c,
+            class_weight={
+                0: 1.0,
+                1: 1.0,
+                2: 3.0
+            },
+            solver="liblinear",
+            max_iter=10000
+        ))
 
-    preds = clf.predict(X_test)
+        # clf = LogisticRegression(
+        #     C=c,
+        #     class_weight={
+        #         0: 1.0,
+        #         1: 1.0,
+        #         2: 3.0
+        #     },
+        #     solver="saga",
+        #     max_iter=10000
+        # )
 
-    print("Results vocab:")
-    print(results_vocab)
+        clf.fit(X_train, y_train)
 
-    print("Predictions:")
-    print(np.unique(preds, return_counts=True))
+        preds = clf.predict(X_test)
 
-    print("Truth:")
-    print(np.unique(y_test, return_counts=True))
+        # id_to_result = {v: k for k, v in results_vocab.items()}
 
-    print("Confusion matrix:")
-    print(confusion_matrix(y_test, preds))
+        # mistakes = []
 
-    print("Classification report:")
-    print(classification_report(y_test, preds, zero_division=0))
+        # for i, (pred, true) in enumerate(zip(preds, y_test)):
+        #     if pred != true:
+        #         case, _ = test[i]
 
-    feature_names = np.concatenate([
-        title_vectorizer.get_feature_names_out(),
-        excerpt_vectorizer.get_feature_names_out(),
-        ["year"],
-        ["justices"]
-    ])
+        #         mistakes.append({
+        #             "index": i,
+        #             "name": case.get("name"),
+        #             "year": case.get("year"),
+        #             "true": id_to_result[true],
+        #             "pred": id_to_result[pred],
+        #             "excerpt": case.get("excerpt", "")
+        #         })
 
-    for i, class_name in enumerate(results_vocab):
-        top = np.argsort(clf.coef_[i])[-20:]
+        # with open("model_mistakes.jsonl", "w", encoding="utf-8") as f:
+        #     for m in mistakes:
+        #         f.write(json.dumps(m, ensure_ascii=False) + "\n")
 
-        print(class_name)
-        print(feature_names[top])
+        # missed_vacated = [
+        #     m for m in mistakes
+        #     if m["true"] == "vacated"
+        # ]
 
-    model_bundle = {
-        "clf": clf,
-        "title_vectorizer": title_vectorizer,
-        "excerpt_vectorizer": excerpt_vectorizer,
-        "justice_vocab": justice_vocab,
-        "results_vocab": results_vocab,
-        "year_mean": year_mean,
-        "year_std": year_std,
-    }
+        # with open("missed_vacated.jsonl", "w", encoding="utf-8") as f:
+        #     for m in missed_vacated:
+        #         f.write(json.dumps(m, ensure_ascii=False) + "\n")
 
-    joblib.dump(model_bundle, "scotus_svc_model.joblib")
+
+        # print("Results vocab:")
+        # print(results_vocab)
+
+        # print("Predictions:")
+        # print(np.unique(preds, return_counts=True))
+
+        # print("Truth:")
+        # print(np.unique(y_test, return_counts=True))
+
+        print("C = ", c)
+
+        print("Confusion matrix:")
+        print(confusion_matrix(y_test, preds))
+
+        print("Classification report:")
+        print(classification_report(y_test, preds, zero_division=0))
+
+    # feature_names = np.concatenate([
+    #     title_vectorizer.get_feature_names_out(),
+    #     excerpt_vectorizer.get_feature_names_out(),
+    #     ["year"],
+    #     ["justices"]
+    # ])
+
+    # for i, class_name in enumerate(results_vocab):
+    #     top = np.argsort(clf.coef_[i])[-20:]
+
+    #     print(class_name)
+    #     print(feature_names[top])
+
+    # model_bundle = {
+    #     "clf": clf,
+    #     "title_vectorizer": title_vectorizer,
+    #     "excerpt_vectorizer": excerpt_vectorizer,
+    #     "justice_vocab": justice_vocab,
+    #     "results_vocab": results_vocab,
+    #     "year_mean": year_mean,
+    #     "year_std": year_std,
+    # }
+
+    # joblib.dump(model_bundle, "scotus_svc_model.joblib")
 
     return clf, title_vectorizer, excerpt_vectorizer, results_vocab
 
 
 if __name__ == "__main__":
-    train_svc_model()
+    if len(sys.argv) != 3 :
+        print("Usage: python svcmodel.py <input_data> <random/temporal>")
+        sys.exit(1)
+
+    train_svc_model(sys.argv[1], sys.argv[2])

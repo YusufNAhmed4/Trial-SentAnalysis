@@ -14,7 +14,7 @@ def train_nn_model() :
     """
     with open('output.jsonl', 'r', encoding="utf-8") as file:
         data = [json.loads(line) for line in file]
-    train, test = modelhelpers.train_test(data, seed=42)
+    train, test = modelhelpers.train_test_temporal(data)
     train = modelhelpers.make_pairs(train)
     test = modelhelpers.make_pairs(test)
 
@@ -73,13 +73,13 @@ def train_nn_model() :
     #     print("train all-zero:", train_zero.sum())
     #     print("test all-zero:", test_zero.sum())
 
-    x_train_bal, y_train_bal = modelhelpers.oversample_classes(x_train, y_train)
+    # x_train_bal, y_train_bal = modelhelpers.oversample_classes(x_train, y_train)
 
     model.fit(
-        x_train_bal,
-        y_train_bal,
+        x_train,
+        y_train,
         validation_data=(x_test, y_test),
-        epochs=30,
+        epochs=10,
         batch_size=32,
         callbacks=[early_stop]
     )
