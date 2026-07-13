@@ -26,3 +26,11 @@ Justices may be erroneous, e.g. "stewart" may appear as "art".
 Model Usage:
 
 python model/<model>.py
+
+For every model not transformer.py, you must specify the <input_file> like so:
+
+python model/<model>.py <input_file>
+
+For the lrmodel, you must specify whether you split temporally or not. a 1 signifies temporal split, a 0 signifies random:
+
+python model/<model>.py <input_file> <random/temporal>
