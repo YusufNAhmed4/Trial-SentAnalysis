@@ -1,18 +1,18 @@
 '''
 This is the model which uses the scraper's data to generate an ML model predicting SC opinions.
 '''
-
+import sys
 import json
 import numpy as np
 import modelhelpers
 import sklearn
 
 
-def train_nn_model() :
+def train_nn_model(input_file) :
     """
     Trains ML NN model
     """
-    with open('output.jsonl', 'r', encoding="utf-8") as file:
+    with open(input_file, 'r', encoding="utf-8") as file:
         data = [json.loads(line) for line in file]
     train, test = modelhelpers.train_test_temporal(data)
     train = modelhelpers.make_pairs(train)
@@ -111,4 +111,8 @@ def train_nn_model() :
 
 
 if __name__ == "__main__":
-    train_nn_model()
+    if len(sys.argv) != 2 :
+        print("Usage: python nnmodel.py <input_data>")
+        sys.exit(1)
+
+    train_nn_model(sys.argv[1])

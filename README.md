@@ -26,3 +26,18 @@ Justices may be erroneous, e.g. "stewart" may appear as "art".
 Model Usage:
 
 python model/<model>.py
+
+For every model not transformer.py, you must specify the <input_file> like so:
+
+python model/<model>.py <input_file>
+
+For the lrmodel, you must specify whether you split temporally or not. a 1 signifies temporal split, a 0 signifies random:
+
+python model/<model>.py <input_file> <random/temporal>
+
+
+Prediction:
+
+python model/<predictor>.py
+
+You may predict using the case_input.jsonl file. Input the case you want to predict in the proper JSONL format.
