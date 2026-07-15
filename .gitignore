@@ -1,0 +1,8 @@
+.venv
+.vscode
+Hidden Trial PDFs
+Trial Data PDFs
+Master JSONLs
+output2.jsonl
+models
+**/__pycache__/
