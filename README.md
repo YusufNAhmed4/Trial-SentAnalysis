@@ -40,4 +40,4 @@ Prediction:
 
 python model/<predictor>.py
 
-You may predict using the case_input.jsonl file. Input the case you want to predict in the proper JSONL format.
+You may predict using the case_input.jsonl file. Input the case you want to predict in the proper JSONL format. Justices must be last-name-only, lowercase

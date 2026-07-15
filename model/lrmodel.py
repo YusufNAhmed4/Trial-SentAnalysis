@@ -111,18 +111,12 @@ def train_lr_model(input_file, sort_type):
 
     # Combine all features
     X_train = hstack([
-        # X_train_title,
         X_train_excerpt,
-        # X_train_excerpt_char,
-        # csr_matrix(year_train),
         justice_train
     ])
 
     X_test = hstack([
-        # X_test_title,
         X_test_excerpt,
-        # X_test_excerpt_char,
-        # csr_matrix(year_test),
         justice_test
     ])
 
@@ -144,12 +138,6 @@ def train_lr_model(input_file, sort_type):
     clf.fit(X_train, y_train)
 
     preds = clf.predict(X_test)
-
-    # print("Predictions:")
-    # print(np.unique(preds, return_counts=True))
-
-    # print("Truth:")
-    # print(np.unique(y_test, return_counts=True))
 
     print("Confusion matrix:")
     print(confusion_matrix(y_test, preds))
@@ -176,8 +164,6 @@ def train_lr_model(input_file, sort_type):
         "excerpt_vectorizer": excerpt_vectorizer,
         "justice_vocab": justice_vocab,
         "results_vocab": results_vocab,
-        # "year_mean": year_mean,
-        # "year_std": year_std,
     }
 
     joblib.dump(model_bundle, "scotus_lr_model.joblib")

@@ -96,23 +96,58 @@ def make_pairs(data):
 
     return pairs
 
-def make_vocabs(data) :
-    """
-    Makes sets of unique results and justices
-    """
-    justices = []
-    results = []
 
-    for entry in data :
-        results.append(entry[1])
-        for justice in entry[0]["justices"] :
-            justices.append(justice)
-        # break
+def make_vocabs(data):
+    """
+    Creates dictionaries mapping unique justice names and results
+    to contiguous numeric indices.
 
-    justice_vocab = set(justices)
-    results_vocab = set(results)
-    results_vocab = {"affirmed": 0, "reversed": 1, "vacated": 2}
+    Expected entry format:
+        (
+            {
+                "justices": [...],
+                ...
+            },
+            "affirmed"
+        )
+    """
+    unique_justices = set()
+    observed_results = set()
+
+    for features, result in data:
+        normalized_result = result.strip().lower()
+        observed_results.add(normalized_result)
+
+        for justice in features["justices"]:
+            normalized_justice = " ".join(
+                justice.strip().upper().split()
+            )
+
+            if normalized_justice:
+                unique_justices.add(normalized_justice)
+
+    justice_vocab = {
+        justice_name: index
+        for index, justice_name in enumerate(
+            sorted(unique_justices)
+        )
+    }
+
+    preferred_result_order = [
+        "affirmed",
+        "reversed",
+        "vacated",
+    ]
+
+    results_vocab = {
+        result: index
+        for index, result in enumerate(preferred_result_order)
+        if result in observed_results
+    }
+
     return justice_vocab, results_vocab
+
+
 
 def scale_years(data, train) :
     """

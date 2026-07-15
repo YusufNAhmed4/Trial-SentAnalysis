@@ -1,9 +1,7 @@
 {
-  "title": "SMITH v. JONES",
   "excerpt": "The Court of Appeals affirmed the judgment of the District Court. The petitioner argues that the statute violates the First Amendment.",
-  "year": 2026,
   "justices": [
-    "JOHN ROBERTS",
-    "CLARENCE THOMAS"
+    "roberts",
+    "thomas"
   ]
 }
